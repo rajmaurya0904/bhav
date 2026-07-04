@@ -1,0 +1,91 @@
+"""Typer CLI entry point."""
+from __future__ import annotations
+
+import importlib.util
+import uuid
+from datetime import date, datetime
+from pathlib import Path
+
+import typer
+from rich.console import Console
+from rich.table import Table
+
+from backtester.data.cache import ParquetCache
+from backtester.data.instruments import InstrumentResolver
+from backtester.data.reader import DataReader
+from backtester.data.upstox_client import UpstoxClient
+from backtester.engine.bar_engine import BarEngine, EngineConfig
+from backtester.metrics.report import compute_metrics
+from backtester.output.writer import ResultWriter
+
+app = typer.Typer(help="NSE options backtester")
+console = Console()
+
+
+def _load_strategy(path: Path):
+    spec = importlib.util.spec_from_file_location("user_strategy", path)
+    if spec is None or spec.loader is None:
+        raise typer.BadParameter(f"Could not load strategy from {path}")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    if not hasattr(mod, "strategy"):
+        raise typer.BadParameter(f"{path} must expose a `strategy` variable")
+    return mod.strategy
+
+
+@app.command()
+def run(
+    strategy_path: Path = typer.Argument(..., help="Path to a Python file with `strategy = MyStrategy()`"),
+    start: str = typer.Option(..., help="YYYY-MM-DD"),
+    end: str = typer.Option(..., help="YYYY-MM-DD"),
+    token: str = typer.Option(..., envvar="UPSTOX_TOKEN"),
+    underlying: str = typer.Option("NSE_INDEX|Nifty 50"),
+    capital: float = typer.Option(500_000),
+    lot_size: int = typer.Option(75),
+    out_dir: Path = typer.Option(Path("runs")),
+) -> None:
+    """Run a backtest and write results to `runs/<run_id>/`."""
+    strat = _load_strategy(strategy_path)
+    with UpstoxClient(token) as client:
+        cache = ParquetCache()
+        reader = DataReader(client, cache)
+        resolver = InstrumentResolver(client, underlying)
+        cfg = EngineConfig(
+            underlying_key=underlying,
+            start=date.fromisoformat(start),
+            end=date.fromisoformat(end),
+            starting_capital=capital,
+            lot_size=lot_size,
+        )
+        engine = BarEngine(cfg, reader, resolver)
+        console.print(f"[bold]Running[/bold] {strat.name} from {start} to {end}...")
+        portfolio = engine.run(strat)
+    metrics = compute_metrics(portfolio)
+    run_id = f"{datetime.now():%Y%m%d_%H%M%S}_{uuid.uuid4().hex[:6]}"
+    writer = ResultWriter(out_dir)
+    path = writer.write(
+        run_id, portfolio, metrics,
+        strategy_name=strat.name,
+        config={"start": start, "end": end, "capital": capital, "lot_size": lot_size},
+    )
+    _print_summary(metrics)
+    console.print(f"\n[dim]Results written to[/dim] [bold]{path}[/bold]")
+
+
+def _print_summary(m):
+    t = Table(title="Summary", show_header=False, border_style="dim")
+    t.add_column("k", style="dim")
+    t.add_column("v")
+    t.add_row("Total return", f"{m.total_return_pct:+.2f}%")
+    t.add_row("CAGR", f"{m.cagr_pct:+.2f}%")
+    t.add_row("Sharpe", f"{m.sharpe:.2f}")
+    t.add_row("Sortino", f"{m.sortino:.2f}")
+    t.add_row("Max drawdown", f"{m.max_drawdown_pct:.2f}%")
+    t.add_row("Trades", f"{m.total_trades} ({m.win_rate_pct:.1f}% win rate)")
+    t.add_row("Profit factor", f"{m.profit_factor:.2f}")
+    t.add_row("Total costs", f"Rs {m.total_costs:,.0f}")
+    console.print(t)
+
+
+if __name__ == "__main__":
+    app()

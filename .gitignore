@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Backtester
+runs/
+cache/
+.backtester/
+
+# Node
+node_modules/
+.next/
+.turbo/
+out/
+dist/
+*.log
+
+# Editor
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.*.local

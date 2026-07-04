@@ -1,0 +1,34 @@
+[project]
+name = "backtester"
+version = "0.1.0-alpha"
+description = "NSE options backtesting engine for Upstox historical data"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = [
+    "httpx>=0.27",
+    "polars>=1.0",
+    "pyarrow>=16",
+    "pydantic>=2.7",
+    "typer>=0.12",
+    "rich>=13.7",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "pytest-cov", "ruff", "mypy"]
+
+[project.scripts]
+backtester = "backtester.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM"]
