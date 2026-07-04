@@ -348,6 +348,8 @@ self._open_key = key
 
 **Trading the wrong side.** `buy_option` = buy premium (long delta on CE, short delta on PE). `sell_option` = sell premium (short delta on CE, long delta on PE). If your first backtest has inverted P&L, this is almost always the reason.
 
+**Trusting broker candle order.** Upstox (and most broker APIs) return 1-minute candles **descending** — latest bar first. Bhav sorts every series ascending before your strategy ever sees it (`ctx.reader.spot_bars()` / `option_bars()` are always pre-sorted), so this cannot bite you inside the engine. But if you ever call a broker API directly outside Bhav — a standalone script, a notebook, a data-exploration tool — and write a "first bar that satisfies X" scan over the raw response, you will silently scan backwards and find the *last* qualifying bar instead of the first. The tell: entry times that cluster suspiciously near a session boundary (e.g. every single day firing right before your cutoff time) instead of spreading naturally across the session. If you ever see that pattern, sort by timestamp first and rerun before trusting anything else about the result.
+
 ---
 
 ## Warmup for lookback strategies
