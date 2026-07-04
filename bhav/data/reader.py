@@ -5,8 +5,8 @@ from datetime import date
 
 import polars as pl
 
-from backtester.data.cache import ParquetCache
-from backtester.data.upstox_client import UpstoxClient
+from bhav.data.cache import ParquetCache
+from bhav.data.upstox_client import UpstoxClient
 
 
 class DataReader:

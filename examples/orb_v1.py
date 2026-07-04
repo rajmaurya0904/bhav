@@ -1,11 +1,11 @@
 """ORB v1 reference strategy, ported to the engine API.
 
 Run:
-    UPSTOX_TOKEN=... backtester run examples/orb_v1.py --start 2025-08-01 --end 2026-05-30
+    UPSTOX_TOKEN=... bhav run examples/orb_v1.py --start 2025-08-01 --end 2026-05-30
 """
 from __future__ import annotations
 
-from backtester.engine.strategy import Context, Strategy
+from bhav.engine.strategy import Context, Strategy
 
 
 class OpeningRangeBreakout(Strategy):

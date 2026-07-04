@@ -1,4 +1,6 @@
-# Backtester Engine
+# Bhav
+
+*Hindi/Marathi/Gujarati word for "market rate" — what every Indian trader means when they say "aaj ka bhav kya hai?"*
 
 Open-source options backtesting engine for NSE (India), built for Upstox historical data.
 
@@ -17,7 +19,7 @@ v0.1 alpha. Single-leg options + spot only. Multi-leg and margin modeling in v0.
 A strategy is one Python file that exposes a `strategy` variable. Minimum viable example:
 
 ```python
-from backtester.engine.strategy import Context, Strategy
+from bhav.engine.strategy import Context, Strategy
 
 class BuyATMCallAtOpen(Strategy):
     name = "buy_atm_call_at_open"
@@ -34,7 +36,7 @@ Then:
 
 ```powershell
 $env:UPSTOX_TOKEN = "your_token"
-backtester run my_strategy.py --start 2025-08-01 --end 2025-11-30
+bhav run my_strategy.py --start 2025-08-01 --end 2025-11-30
 ```
 
 Full guide with API reference, three worked examples, common patterns, and common mistakes: [docs/writing-strategies.md](docs/writing-strategies.md).

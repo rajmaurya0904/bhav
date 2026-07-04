@@ -20,7 +20,7 @@ A strategy is a Python file that exposes a `strategy` variable. That's the whole
 1. Create a file anywhere on your machine, e.g. `my_strategy.py`:
 
     ```python
-    from backtester.engine.strategy import Context, Strategy
+    from bhav.engine.strategy import Context, Strategy
 
     class BuyATMCallAtOpen(Strategy):
         name = "buy_atm_call_at_open"
@@ -38,7 +38,7 @@ A strategy is a Python file that exposes a `strategy` variable. That's the whole
 
     ```powershell
     $env:UPSTOX_TOKEN = "your_token"
-    backtester run my_strategy.py --start 2025-08-01 --end 2025-08-15
+    bhav run my_strategy.py --start 2025-08-01 --end 2025-08-15
     ```
 
 3. Results land under `runs/<run_id>/`. Open the frontend and it will show up in the runs list.
@@ -49,7 +49,7 @@ That's the whole loop. Everything below is depth on top of that.
 
 ## The Strategy API
 
-Every strategy subclasses `Strategy` from `backtester.engine.strategy`. You must:
+Every strategy subclasses `Strategy` from `bhav.engine.strategy`. You must:
 
 - Set a `name` (used in logs, output paths, and the frontend runs list)
 - Implement `on_bar(self, ctx)`
@@ -57,7 +57,7 @@ Every strategy subclasses `Strategy` from `backtester.engine.strategy`. You must
 Optional lifecycle hooks are described below. Everything else is up to you.
 
 ```python
-from backtester.engine.strategy import Context, Strategy
+from bhav.engine.strategy import Context, Strategy
 
 class MyStrategy(Strategy):
     name = "my_strategy"
@@ -157,7 +157,7 @@ The engine automatically squares off all positions at the configured `square_off
 ### 1. Simplest: buy the ATM call at 09:30, ride it to close
 
 ```python
-from backtester.engine.strategy import Context, Strategy
+from bhav.engine.strategy import Context, Strategy
 
 class MorningCall(Strategy):
     name = "morning_call"
@@ -181,7 +181,7 @@ Auto square-off at 15:15 handles the exit.
 Sell one ATM call and one ATM put at 09:20, cut both if combined loss hits 30% of premium received.
 
 ```python
-from backtester.engine.strategy import Context, Strategy
+from bhav.engine.strategy import Context, Strategy
 
 class ATMStraddleSell(Strategy):
     name = "atm_straddle_sell"
@@ -237,7 +237,7 @@ Already shipped — see [`examples/orb_v1.py`](../examples/orb_v1.py). Uses `on_
 
 ```powershell
 $env:UPSTOX_TOKEN = "your_upstox_access_token"
-backtester run path/to/my_strategy.py `
+bhav run path/to/my_strategy.py `
   --start 2025-08-01 `
   --end 2025-11-30 `
   --capital 500000 `
@@ -352,5 +352,5 @@ self._open_key = key
 ## Where to go next
 
 - Read [`examples/orb_v1.py`](../examples/orb_v1.py) top to bottom. It's the fullest reference.
-- Read [`backtester/engine/strategy.py`](../backtester/engine/strategy.py). The `Context` class is short and honest.
-- Read [`backtester/engine/costs.py`](../backtester/engine/costs.py) before deciding whether your edge survives realistic Indian option costs. Most retail edges don't.
+- Read [`bhav/engine/strategy.py`](../bhav/engine/strategy.py). The `Context` class is short and honest.
+- Read [`bhav/engine/costs.py`](../bhav/engine/costs.py) before deciding whether your edge survives realistic Indian option costs. Most retail edges don't.

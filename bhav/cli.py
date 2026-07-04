@@ -10,21 +10,21 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
-from backtester.data.cache import ParquetCache
-from backtester.data.instruments import InstrumentResolver
-from backtester.data.reader import DataReader
-from backtester.data.upstox_client import UpstoxClient
-from backtester.engine.bar_engine import BarEngine, EngineConfig
-from backtester.metrics.report import compute_metrics
-from backtester.output.writer import ResultWriter
+from bhav.data.cache import ParquetCache
+from bhav.data.instruments import InstrumentResolver
+from bhav.data.reader import DataReader
+from bhav.data.upstox_client import UpstoxClient
+from bhav.engine.bar_engine import BarEngine, EngineConfig
+from bhav.metrics.report import compute_metrics
+from bhav.output.writer import ResultWriter
 
-app = typer.Typer(help="NSE options backtester", no_args_is_help=True)
+app = typer.Typer(help="Bhav: NSE options backtester", no_args_is_help=True)
 console = Console()
 
 
 @app.callback()
 def _main() -> None:
-    """NSE options backtester engine."""
+    """Bhav: NSE options backtesting engine."""
 
 
 def _load_strategy(path: Path):

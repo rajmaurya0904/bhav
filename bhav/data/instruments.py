@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import date
 from functools import lru_cache
 
-from backtester.data.upstox_client import OptionContract, UpstoxClient
+from bhav.data.upstox_client import OptionContract, UpstoxClient
 
 
 @dataclass(frozen=True)

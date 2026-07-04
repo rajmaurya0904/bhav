@@ -15,9 +15,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Backtester / NSE Options Engine",
+  title: "Bhav / NSE Options Backtester",
   description:
-    "Open-source backtesting engine for NSE options traders. Built for Upstox historical data.",
+    "Open-source NSE options backtesting engine, built for Upstox historical data.",
 };
 
 export default function RootLayout({

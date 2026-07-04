@@ -1,7 +1,7 @@
 [project]
-name = "backtester"
+name = "bhav"
 version = "0.1.0-alpha"
-description = "NSE options backtesting engine for Upstox historical data"
+description = "NSE options backtesting engine, built for Upstox historical data"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -21,7 +21,7 @@ dependencies = [
 dev = ["pytest>=8", "pytest-cov", "ruff", "mypy"]
 
 [project.scripts]
-backtester = "backtester.cli:app"
+bhav = "bhav.cli:app"
 
 [build-system]
 requires = ["hatchling"]

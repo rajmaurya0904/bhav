@@ -9,8 +9,8 @@ from pathlib import Path
 
 import polars as pl
 
-from backtester.engine.portfolio import Portfolio
-from backtester.metrics.report import MetricsReport
+from bhav.engine.portfolio import Portfolio
+from bhav.metrics.report import MetricsReport
 
 
 class ResultWriter:

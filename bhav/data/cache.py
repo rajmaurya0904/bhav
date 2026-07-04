@@ -8,7 +8,7 @@ from pathlib import Path
 
 import polars as pl
 
-DEFAULT_CACHE_DIR = Path.home() / ".backtester" / "cache"
+DEFAULT_CACHE_DIR = Path.home() / ".bhav" / "cache"
 CANDLE_SCHEMA = {
     "timestamp": pl.Datetime(time_zone="Asia/Kolkata"),
     "open": pl.Float64,

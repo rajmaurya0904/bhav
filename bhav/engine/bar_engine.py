@@ -4,12 +4,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 
-from backtester.data.calendar import NSECalendar
-from backtester.data.instruments import InstrumentResolver
-from backtester.data.reader import DataReader
-from backtester.engine.costs import CostModel, IndianCostModel
-from backtester.engine.portfolio import Portfolio
-from backtester.engine.strategy import Bar, Context, Strategy
+from bhav.data.calendar import NSECalendar
+from bhav.data.instruments import InstrumentResolver
+from bhav.data.reader import DataReader
+from bhav.engine.costs import CostModel, IndianCostModel
+from bhav.engine.portfolio import Portfolio
+from bhav.engine.strategy import Bar, Context, Strategy
 
 
 @dataclass

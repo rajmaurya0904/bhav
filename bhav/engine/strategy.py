@@ -9,9 +9,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import polars as pl
 
-    from backtester.data.instruments import InstrumentResolver
-    from backtester.data.reader import DataReader
-    from backtester.engine.portfolio import Portfolio
+    from bhav.data.instruments import InstrumentResolver
+    from bhav.data.reader import DataReader
+    from bhav.engine.portfolio import Portfolio
 
 
 @dataclass

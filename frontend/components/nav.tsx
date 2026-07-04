@@ -12,7 +12,7 @@ export function Nav() {
             aria-hidden
             className="inline-block h-2.5 w-2.5 rounded-full bg-[var(--color-primary)]"
           />
-          <span>Backtester</span>
+          <span>Bhav</span>
           <span className="text-[var(--color-ink-muted)] font-normal">/ v0.1</span>
         </Link>
         <div className="flex items-center gap-8 text-[14px] text-[var(--color-ink-muted)]">
