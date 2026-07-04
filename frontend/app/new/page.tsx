@@ -1,76 +1,211 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Nav } from "@/components/nav";
+import { createRun, API_BASE } from "@/lib/api";
+import { AI_PROMPT } from "@/lib/ai-prompt";
 
 export default function NewBacktestPage() {
+  const router = useRouter();
+  const [file, setFile] = useState<File | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    if (!file) {
+      setError("Attach a strategy .py file");
+      return;
+    }
+    const fd = new FormData(e.currentTarget);
+    fd.set("strategy", file);
+    setSubmitting(true);
+    try {
+      const { id } = await createRun(fd);
+      router.push(`/backtests/${id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setSubmitting(false);
+    }
+  }
+
+  async function copyPrompt() {
+    await navigator.clipboard.writeText(AI_PROMPT);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1600);
+  }
+
   return (
     <div className="min-h-[100dvh]">
       <Nav />
-      <main className="mx-auto max-w-[720px] px-6 pt-16 pb-24">
+      <main className="mx-auto max-w-[900px] px-6 pt-12 pb-24">
         <h1 className="text-[42px] tracking-[-0.03em] font-medium leading-[1.05]">
-          Configure a backtest
+          Run a backtest
         </h1>
-        <p className="mt-4 text-[17px] leading-[1.6] text-[var(--color-ink-muted)]">
-          Point the engine at a strategy file, a date range, and a starting
-          capital. Results land in the runs list when the job completes.
+        <p className="mt-3 text-[16px] leading-[1.6] text-[var(--color-ink-muted)] max-w-[640px]">
+          Upload a strategy file, set the range and capital, submit. The engine
+          fetches historical candles from Upstox, simulates bar by bar, and
+          writes deterministic Parquet results.
         </p>
 
-        <form className="mt-12 space-y-8">
+        <section className="mt-10 rounded-lg border border-[var(--color-border-warm)] bg-white/40 overflow-hidden">
+          <details className="group">
+            <summary className="flex items-center justify-between cursor-pointer px-6 py-5 hover:bg-[var(--color-surface-1)]/50 transition-colors">
+              <div>
+                <div className="text-[16px] font-medium">
+                  Generate a strategy with AI
+                </div>
+                <div className="mt-1 text-[13px] text-[var(--color-ink-muted)]">
+                  Copy this prompt into ChatGPT, Claude, or Gemini and describe
+                  your idea. The model returns a valid strategy .py you can
+                  upload below.
+                </div>
+              </div>
+              <span className="text-[13px] text-[var(--color-ink-muted)] group-open:hidden">
+                Show
+              </span>
+              <span className="text-[13px] text-[var(--color-ink-muted)] hidden group-open:inline">
+                Hide
+              </span>
+            </summary>
+            <div className="border-t border-[var(--color-border-warm)] p-6">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[12px] uppercase tracking-[0.08em] text-[var(--color-ink-muted)]">
+                  System prompt
+                </span>
+                <button
+                  type="button"
+                  onClick={copyPrompt}
+                  className="rounded-md border border-[var(--color-border-warm)] px-3 py-1.5 text-[13px] font-medium hover:bg-[var(--color-surface-1)] transition-colors"
+                >
+                  {copied ? "Copied" : "Copy prompt"}
+                </button>
+              </div>
+              <pre className="max-h-[360px] overflow-auto rounded-md bg-[var(--color-code-bg)] p-4 text-[12.5px] leading-[1.55] font-mono whitespace-pre-wrap">
+                {AI_PROMPT}
+              </pre>
+            </div>
+          </details>
+        </section>
+
+        <form
+          onSubmit={onSubmit}
+          className="mt-10 rounded-lg border border-[var(--color-border-warm)] bg-white/40 p-8 space-y-7"
+        >
           <Field
-            label="Strategy file"
-            hint="Path to a Python file exposing `strategy = MyStrategy()`"
+            label="Strategy file (.py)"
+            hint="A Python file that exposes `strategy = MyStrategy()` at module level"
           >
-            <input
-              className="input"
-              defaultValue="examples/orb_v1.py"
-            />
+            <label className="flex items-center gap-4 rounded-md border border-dashed border-[var(--color-border-warm)] px-4 py-4 bg-[var(--color-surface-1)]/40 cursor-pointer hover:bg-[var(--color-surface-1)] transition-colors">
+              <input
+                type="file"
+                accept=".py"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                className="sr-only"
+              />
+              <span
+                className={
+                  file
+                    ? "text-[14px] font-medium"
+                    : "text-[14px] text-[var(--color-ink-muted)]"
+                }
+              >
+                {file ? file.name : "Click to select a .py file"}
+              </span>
+              {file && (
+                <span className="text-[12px] text-[var(--color-ink-muted)] tabular">
+                  {(file.size / 1024).toFixed(1)} kb
+                </span>
+              )}
+            </label>
           </Field>
 
           <div className="grid grid-cols-2 gap-6">
             <Field label="Start date">
-              <input type="date" className="input" defaultValue="2025-08-01" />
+              <input
+                name="start_date"
+                type="date"
+                className="input"
+                defaultValue="2025-08-01"
+                required
+              />
             </Field>
             <Field label="End date">
-              <input type="date" className="input" defaultValue="2026-02-27" />
+              <input
+                name="end_date"
+                type="date"
+                className="input"
+                defaultValue="2025-08-15"
+                required
+              />
             </Field>
           </div>
 
           <Field label="Underlying">
-            <select className="input" defaultValue="NIFTY">
-              <option value="NIFTY">NIFTY 50</option>
-              <option value="BANKNIFTY">BANK NIFTY</option>
-              <option value="FINNIFTY">FIN NIFTY</option>
-              <option value="MIDCPNIFTY">MIDCAP NIFTY</option>
+            <select name="underlying" className="input" defaultValue="NSE_INDEX|Nifty 50">
+              <option value="NSE_INDEX|Nifty 50">NIFTY 50</option>
+              <option value="NSE_INDEX|Nifty Bank">BANK NIFTY</option>
+              <option value="NSE_INDEX|Nifty Fin Service">FIN NIFTY</option>
+              <option value="NSE_INDEX|NIFTY MID SELECT">MIDCAP NIFTY</option>
             </select>
           </Field>
 
           <div className="grid grid-cols-2 gap-6">
             <Field label="Starting capital (Rs)">
-              <input type="number" className="input tabular" defaultValue={500000} />
+              <input
+                name="capital"
+                type="number"
+                className="input tabular"
+                defaultValue={500000}
+                min={10000}
+                required
+              />
             </Field>
             <Field label="Lot size">
-              <input type="number" className="input tabular" defaultValue={75} />
+              <input
+                name="lot_size"
+                type="number"
+                className="input tabular"
+                defaultValue={75}
+                min={1}
+                required
+              />
             </Field>
           </div>
 
           <Field
             label="Upstox access token"
-            hint="Expires daily around 03:30 IST. Regenerate before each run."
+            hint="Expires daily around 03:30 IST. Never committed to the runs directory."
           >
-            <input type="password" className="input font-mono" placeholder="eyJ0eXAi..." />
+            <input
+              name="upstox_token"
+              type="password"
+              className="input font-mono"
+              placeholder="eyJ0eXAi..."
+              required
+            />
           </Field>
 
-          <div className="pt-6 flex items-center gap-3 divider-t">
+          {error && (
+            <div className="rounded-md border border-[var(--color-negative)]/40 bg-[var(--color-negative)]/5 px-4 py-3 text-[13px] text-[var(--color-negative)]">
+              {error}
+            </div>
+          )}
+
+          <div className="pt-2 flex items-center gap-3 divider-t">
             <button
-              type="button"
-              className="rounded-md bg-[var(--color-primary)] px-5 py-2.5 text-[14px] font-medium text-white hover:bg-[var(--color-primary-hover)] transition-colors mt-6"
+              type="submit"
+              disabled={submitting}
+              className="rounded-md bg-[var(--color-primary)] px-5 py-2.5 text-[14px] font-medium text-white hover:bg-[var(--color-primary-hover)] transition-colors mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Start backtest
+              {submitting ? "Submitting..." : "Start backtest"}
             </button>
-            <button
-              type="button"
-              className="rounded-md border border-[var(--color-border-warm)] px-5 py-2.5 text-[14px] font-medium hover:bg-[var(--color-surface-1)] transition-colors mt-6"
-            >
-              Save as preset
-            </button>
+            <p className="mt-6 text-[12px] text-[var(--color-ink-muted)]">
+              API: {API_BASE}
+            </p>
           </div>
         </form>
 

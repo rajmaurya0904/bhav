@@ -14,6 +14,7 @@ dependencies = [
     "rich>=13.7",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
+    "python-multipart>=0.0.9",
     "tzdata>=2024.1 ; sys_platform == 'win32'",
 ]
 
@@ -22,6 +23,7 @@ dev = ["pytest>=8", "pytest-cov", "ruff", "mypy"]
 
 [project.scripts]
 bhav = "bhav.cli:app"
+bhav-server = "bhav.api.server:serve"
 
 [build-system]
 requires = ["hatchling"]
