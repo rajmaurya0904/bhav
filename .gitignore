@@ -11,7 +11,9 @@ venv/
 # Backtester
 runs/
 cache/
+strategies/
 .backtester/
+.bhav/
 
 # Node
 node_modules/
