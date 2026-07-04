@@ -26,6 +26,7 @@ from bhav.cli import _load_strategy
 from bhav.data.cache import ParquetCache
 from bhav.data.instruments import InstrumentResolver
 from bhav.data.reader import DataReader
+from bhav.data.underlyings import UNDERLYINGS, default_lot_size
 from bhav.data.upstox_client import UpstoxClient
 from bhav.engine.bar_engine import BarEngine, EngineConfig
 from bhav.metrics.report import compute_metrics
@@ -120,6 +121,15 @@ def health() -> dict:
     return {"status": "ok", "version": "0.1.0-alpha"}
 
 
+@app.get("/api/underlyings")
+def underlyings() -> list[dict]:
+    """Supported underlyings with lot size and ATM step."""
+    return [
+        {"key": u.key, "display": u.display, "lot_size": u.lot_size, "atm_step": u.atm_step}
+        for u in UNDERLYINGS
+    ]
+
+
 @app.get("/api/runs")
 def list_runs() -> list[dict]:
     if not RUNS_DIR.exists():
@@ -204,8 +214,9 @@ async def create_run(
     end_date: str = Form(...),
     underlying: str = Form("NSE_INDEX|Nifty 50"),
     capital: float = Form(500_000),
-    lot_size: int = Form(75),
+    lot_size: int = Form(0),
 ) -> dict:
+    resolved_lot = lot_size or default_lot_size(underlying)
     if not strategy.filename or not strategy.filename.endswith(".py"):
         raise HTTPException(400, "strategy must be a .py file")
     content = (await strategy.read()).decode("utf-8")
@@ -230,11 +241,11 @@ async def create_run(
 
     thread = threading.Thread(
         target=_run_backtest_thread,
-        args=(run_id, strategy_path, upstox_token, underlying, start_d, end_d, capital, lot_size),
+        args=(run_id, strategy_path, upstox_token, underlying, start_d, end_d, capital, resolved_lot),
         daemon=True,
     )
     thread.start()
-    return {"id": run_id, "status": "queued"}
+    return {"id": run_id, "status": "queued", "lot_size": resolved_lot}
 
 
 def serve(host: str = "127.0.0.1", port: int = 8000) -> None:

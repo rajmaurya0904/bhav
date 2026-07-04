@@ -7,6 +7,7 @@ from datetime import date
 from bhav.data.calendar import NSECalendar
 from bhav.data.instruments import InstrumentResolver
 from bhav.data.reader import DataReader
+from bhav.data.underlyings import default_lot_size
 from bhav.engine.costs import CostModel, IndianCostModel
 from bhav.engine.portfolio import Portfolio
 from bhav.engine.strategy import Bar, Context, Strategy
@@ -18,11 +19,14 @@ class EngineConfig:
     start: date
     end: date
     starting_capital: float = 500_000
-    lot_size: int = 75
+    lot_size: int | None = None  # None = auto-lookup from underlying_key
     interval: str = "1minute"
     cost_model: CostModel | None = None
     calendar: NSECalendar | None = None
     square_off_time: str = "15:15"
+
+    def resolved_lot_size(self) -> int:
+        return self.lot_size if self.lot_size is not None else default_lot_size(self.underlying_key)
 
 
 class BarEngine:
@@ -43,6 +47,7 @@ class BarEngine:
 
     def run(self, strategy: Strategy) -> Portfolio:
         days = self.calendar.trading_days(self.cfg.start, self.cfg.end)
+        lot_size = self.cfg.resolved_lot_size()
         first_ctx: Context | None = None
         for d in days:
             spot = self.reader.spot_bars(self.cfg.underlying_key, d, self.cfg.interval)
@@ -64,7 +69,7 @@ class BarEngine:
                     reader=self.reader,
                     resolver=self.resolver,
                     portfolio=self.portfolio,
-                    lot_size=self.cfg.lot_size,
+                    lot_size=lot_size,
                 )
                 if first_ctx is None:
                     strategy.on_start(ctx)

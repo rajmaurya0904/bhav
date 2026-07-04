@@ -13,6 +13,7 @@ from rich.table import Table
 from bhav.data.cache import ParquetCache
 from bhav.data.instruments import InstrumentResolver
 from bhav.data.reader import DataReader
+from bhav.data.underlyings import default_lot_size
 from bhav.data.upstox_client import UpstoxClient
 from bhav.engine.bar_engine import BarEngine, EngineConfig
 from bhav.metrics.report import compute_metrics
@@ -46,11 +47,12 @@ def run(
     token: str = typer.Option(..., envvar="UPSTOX_TOKEN"),
     underlying: str = typer.Option("NSE_INDEX|Nifty 50"),
     capital: float = typer.Option(500_000),
-    lot_size: int = typer.Option(75),
+    lot_size: int = typer.Option(0, help="Override lot size. 0 = auto-lookup from underlying."),
     out_dir: Path = typer.Option(Path("runs")),
 ) -> None:
     """Run a backtest and write results to `runs/<run_id>/`."""
     strat = _load_strategy(strategy_path)
+    resolved_lot = lot_size or default_lot_size(underlying)
     with UpstoxClient(token) as client:
         cache = ParquetCache()
         reader = DataReader(client, cache)
@@ -60,10 +62,13 @@ def run(
             start=date.fromisoformat(start),
             end=date.fromisoformat(end),
             starting_capital=capital,
-            lot_size=lot_size,
+            lot_size=resolved_lot,
         )
         engine = BarEngine(cfg, reader, resolver)
-        console.print(f"[bold]Running[/bold] {strat.name} from {start} to {end}...")
+        console.print(
+            f"[bold]Running[/bold] {strat.name} from {start} to {end} "
+            f"(underlying={underlying}, lot={resolved_lot})..."
+        )
         portfolio = engine.run(strat)
     metrics = compute_metrics(portfolio)
     run_id = f"{datetime.now():%Y%m%d_%H%M%S}_{uuid.uuid4().hex[:6]}"
@@ -71,7 +76,13 @@ def run(
     path = writer.write(
         run_id, portfolio, metrics,
         strategy_name=strat.name,
-        config={"start": start, "end": end, "capital": capital, "lot_size": lot_size},
+        config={
+            "start": start,
+            "end": end,
+            "capital": capital,
+            "lot_size": resolved_lot,
+            "underlying": underlying,
+        },
     )
     _print_summary(metrics)
     console.print(f"\n[dim]Results written to[/dim] [bold]{path}[/bold]")

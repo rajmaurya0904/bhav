@@ -5,6 +5,7 @@ import { useState } from "react";
 import { Nav } from "@/components/nav";
 import { createRun, API_BASE } from "@/lib/api";
 import { AI_PROMPT } from "@/lib/ai-prompt";
+import { UNDERLYINGS, lotSizeFor } from "@/lib/underlyings";
 
 export default function NewBacktestPage() {
   const router = useRouter();
@@ -12,6 +13,8 @@ export default function NewBacktestPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [underlying, setUnderlying] = useState(UNDERLYINGS[0].key);
+  const [lotSize, setLotSize] = useState(UNDERLYINGS[0].lot_size);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -144,12 +147,24 @@ export default function NewBacktestPage() {
             </Field>
           </div>
 
-          <Field label="Underlying">
-            <select name="underlying" className="input" defaultValue="NSE_INDEX|Nifty 50">
-              <option value="NSE_INDEX|Nifty 50">NIFTY 50</option>
-              <option value="NSE_INDEX|Nifty Bank">BANK NIFTY</option>
-              <option value="NSE_INDEX|Nifty Fin Service">FIN NIFTY</option>
-              <option value="NSE_INDEX|NIFTY MID SELECT">MIDCAP NIFTY</option>
+          <Field
+            label="Underlying"
+            hint="Lot size auto-fills from the latest NSE/BSE spec below. You can override it."
+          >
+            <select
+              name="underlying"
+              className="input"
+              value={underlying}
+              onChange={(e) => {
+                setUnderlying(e.target.value);
+                setLotSize(lotSizeFor(e.target.value));
+              }}
+            >
+              {UNDERLYINGS.map((u) => (
+                <option key={u.key} value={u.key}>
+                  {u.display} · lot {u.lot_size}
+                </option>
+              ))}
             </select>
           </Field>
 
@@ -169,7 +184,8 @@ export default function NewBacktestPage() {
                 name="lot_size"
                 type="number"
                 className="input tabular"
-                defaultValue={75}
+                value={lotSize}
+                onChange={(e) => setLotSize(Number(e.target.value))}
                 min={1}
                 required
               />

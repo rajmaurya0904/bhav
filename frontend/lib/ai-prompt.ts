@@ -27,7 +27,7 @@ ctx.reader.option_bars(instrument_key, ctx.date)
 ctx.resolver.nearest_expiry(ctx.date)
 ctx.resolver.atm_strike(spot: float) -> int
 ctx.portfolio.positions  # dict, empty means flat
-ctx.lot_size
+ctx.lot_size            # auto-derived from underlying (NIFTY=65, BANKNIFTY=25, SENSEX=20, FINNIFTY=65, MIDCPNIFTY=120, NIFTYNXT50=25, BANKEX=30, SENSEX50=60)
 
 === ACTIONS ===
 

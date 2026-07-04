@@ -38,7 +38,9 @@ ctx.reader.option_bars(instrument_key, ctx.date)    # polars DataFrame
 ctx.resolver.nearest_expiry(ctx.date)               # date
 ctx.resolver.atm_strike(spot: float) -> int
 ctx.portfolio.positions  # dict of open positions, empty means flat
-ctx.lot_size             # underlying lot size (75 for NIFTY 2025-2026)
+ctx.lot_size             # auto-derived per underlying:
+                         # NIFTY=65, BANKNIFTY=25, SENSEX=20, FINNIFTY=65,
+                         # MIDCPNIFTY=120, NIFTYNXT50=25, BANKEX=30, SENSEX50=60
 
 === ACTIONS ===
 

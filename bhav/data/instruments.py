@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import date
 from functools import lru_cache
 
+from bhav.data.underlyings import default_atm_step
 from bhav.data.upstox_client import OptionContract, UpstoxClient
 
 
@@ -22,12 +23,12 @@ class InstrumentResolver:
         client: UpstoxClient,
         underlying_key: str,
         *,
-        atm_step: int = 50,
+        atm_step: int | None = None,
         fallback_offsets: tuple[int, ...] = (1, -1, 2, -2),
     ) -> None:
         self.client = client
         self.underlying_key = underlying_key
-        self.atm_step = atm_step
+        self.atm_step = atm_step if atm_step is not None else default_atm_step(underlying_key)
         self.fallback_offsets = fallback_offsets
         self._expiries: list[date] | None = None
         self._chain_cache: dict[date, dict[tuple[int, str], OptionContract]] = {}

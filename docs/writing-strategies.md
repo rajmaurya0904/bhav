@@ -91,7 +91,7 @@ The module-level `strategy` variable is what the CLI loads. If it's missing, the
 | `ctx.reader` | For fetching other series when you need them |
 | `ctx.resolver` | For inspecting expiries and the option chain |
 | `ctx.portfolio` | Current positions, cash, closed trades, equity curve |
-| `ctx.lot_size` | Underlying lot size (75 for NIFTY as of 2026) |
+| `ctx.lot_size` | Underlying lot size (auto-lookup, see [bhav/data/underlyings.py](../bhav/data/underlyings.py)) |
 
 ### Opening a position
 
