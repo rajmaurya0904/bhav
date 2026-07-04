@@ -18,8 +18,13 @@ from backtester.engine.bar_engine import BarEngine, EngineConfig
 from backtester.metrics.report import compute_metrics
 from backtester.output.writer import ResultWriter
 
-app = typer.Typer(help="NSE options backtester")
+app = typer.Typer(help="NSE options backtester", no_args_is_help=True)
 console = Console()
+
+
+@app.callback()
+def _main() -> None:
+    """NSE options backtester engine."""
 
 
 def _load_strategy(path: Path):

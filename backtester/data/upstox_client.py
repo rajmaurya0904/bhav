@@ -79,7 +79,7 @@ class UpstoxClient:
                     return r.json()
                 if r.status_code == 401:
                     raise TokenExpiredError(
-                        "Upstox 401 — access token expired or invalid. "
+                        "Upstox 401: access token expired or invalid. "
                         "Tokens expire daily around 03:30 IST. Refresh and retry."
                     )
                 if r.status_code == 429 or r.status_code >= 500:
