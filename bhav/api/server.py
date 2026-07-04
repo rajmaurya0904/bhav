@@ -72,6 +72,7 @@ def _run_backtest_thread(
     end: date,
     capital: float,
     lot_size: int,
+    warmup_days: int = 0,
 ) -> None:
     try:
         _write_status(run_id, status="running", progress="loading_strategy")
@@ -88,6 +89,7 @@ def _run_backtest_thread(
                 end=end,
                 starting_capital=capital,
                 lot_size=lot_size,
+                warmup_days=warmup_days,
             )
             engine = BarEngine(cfg, reader, resolver)
             _write_status(run_id, progress="simulating")
@@ -104,6 +106,7 @@ def _run_backtest_thread(
                 "capital": capital,
                 "lot_size": lot_size,
                 "underlying": underlying,
+                "warmup_days": warmup_days,
             },
         )
         _write_status(run_id, status="completed", progress="done")
@@ -215,6 +218,7 @@ async def create_run(
     underlying: str = Form("NSE_INDEX|Nifty 50"),
     capital: float = Form(500_000),
     lot_size: int = Form(0),
+    warmup_days: int = Form(0),
 ) -> dict:
     resolved_lot = lot_size or default_lot_size(underlying)
     if not strategy.filename or not strategy.filename.endswith(".py"):
@@ -241,11 +245,11 @@ async def create_run(
 
     thread = threading.Thread(
         target=_run_backtest_thread,
-        args=(run_id, strategy_path, upstox_token, underlying, start_d, end_d, capital, resolved_lot),
+        args=(run_id, strategy_path, upstox_token, underlying, start_d, end_d, capital, resolved_lot, warmup_days),
         daemon=True,
     )
     thread.start()
-    return {"id": run_id, "status": "queued", "lot_size": resolved_lot}
+    return {"id": run_id, "status": "queued", "lot_size": resolved_lot, "warmup_days": warmup_days}
 
 
 def serve(host: str = "127.0.0.1", port: int = 8000) -> None:

@@ -37,6 +37,7 @@ class Context:
         resolver: InstrumentResolver,
         portfolio: Portfolio,
         lot_size: int,
+        is_warmup: bool = False,
     ) -> None:
         self.date = current_date
         self.bar = current_bar
@@ -44,6 +45,7 @@ class Context:
         self.resolver = resolver
         self.portfolio = portfolio
         self.lot_size = lot_size
+        self.is_warmup = is_warmup
 
     def spot(self) -> float:
         return self.bar.close
@@ -56,6 +58,8 @@ class Context:
         lots: int = 1,
         expiry: date | None = None,
     ) -> str | None:
+        if self.is_warmup:
+            return None
         exp = expiry or self.resolver.nearest_expiry(self.date)
         if exp is None:
             return None
@@ -89,6 +93,8 @@ class Context:
         return self.buy_option(**kwargs)
 
     def close(self, instrument_key: str, reason: str = "manual") -> None:
+        if self.is_warmup:
+            return
         bars = self.reader.option_bars(instrument_key, self.date)
         exit_price = self._price_at(bars, self.bar.timestamp)
         if exit_price is None:

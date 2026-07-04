@@ -10,6 +10,7 @@ A backtester is only useful if you can express your own idea in it. This guide w
 - [Running your strategy](#running-your-strategy)
 - [Common patterns](#common-patterns)
 - [Common mistakes](#common-mistakes)
+- [Warmup for lookback strategies](#warmup-for-lookback-strategies)
 
 ---
 
@@ -348,6 +349,26 @@ self._open_key = key
 **Trading the wrong side.** `buy_option` = buy premium (long delta on CE, short delta on PE). `sell_option` = sell premium (short delta on CE, long delta on PE). If your first backtest has inverted P&L, this is almost always the reason.
 
 ---
+
+## Warmup for lookback strategies
+
+If your strategy needs history from before the backtest starts (e.g. S/R over the last 3 days, a 20-day moving average, opening-range values from previous sessions), pass `--warmup-days N` on the CLI or set the "Warmup days" field in the frontend.
+
+During warmup, the engine replays those N trading days before the start date:
+
+- `on_day_start`, `on_bar`, and `on_day_end` all fire normally so your per-day and per-bar state builds up
+- `ctx.buy_option`, `ctx.sell_option`, and `ctx.close` are silently no-ops
+- No trades appear in the log, no equity-curve points are recorded
+
+You do NOT need to check `ctx.is_warmup` in your strategy code. Just build history as normal. Once the warmup ends and the live window starts, orders begin executing.
+
+Example: a strategy using 3-day rolling S/R should be launched with `--warmup-days 3`:
+
+```powershell
+bhav run my_sr_strategy.py --start 2025-08-01 --end 2025-08-15 --warmup-days 3
+```
+
+Without warmup, the first 3 trading days of the window are wasted seeding history and cannot trade. With `--warmup-days 3`, the strategy has valid S/R on day one of the live window.
 
 ## Where to go next
 

@@ -28,6 +28,7 @@ ctx.resolver.nearest_expiry(ctx.date)
 ctx.resolver.atm_strike(spot: float) -> int
 ctx.portfolio.positions  # dict, empty means flat
 ctx.lot_size            # auto-derived from underlying (NIFTY=65, BANKNIFTY=25, SENSEX=20, FINNIFTY=65, MIDCPNIFTY=120, NIFTYNXT50=25, BANKEX=30, SENSEX50=60)
+ctx.is_warmup           # True during the pre-window warmup phase. Orders are no-ops during warmup.
 
 === ACTIONS ===
 
@@ -52,6 +53,12 @@ if hhmm < "09:30" or hhmm > "14:30":
 5. Auto square-off at 15:15 is handled by the engine. Do not duplicate it.
 6. Always check the return value of buy_option / sell_option for None.
 7. Single file, no side effects at import time.
+8. If your strategy needs a lookback (S/R over N days, moving averages,
+   opening-range history), the user launches the run with a matching
+   \`warmup_days\` value. During warmup, on_day_start / on_bar / on_day_end
+   still fire so per-day state builds up, but ctx.buy_option, ctx.sell_option,
+   and ctx.close are silently no-ops. You do NOT need to check ctx.is_warmup
+   explicitly for entries. Just build history normally.
 
 === EXAMPLE SHAPE ===
 

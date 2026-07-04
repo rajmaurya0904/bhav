@@ -41,6 +41,7 @@ ctx.portfolio.positions  # dict of open positions, empty means flat
 ctx.lot_size             # auto-derived per underlying:
                          # NIFTY=65, BANKNIFTY=25, SENSEX=20, FINNIFTY=65,
                          # MIDCPNIFTY=120, NIFTYNXT50=25, BANKEX=30, SENSEX50=60
+ctx.is_warmup            # True during pre-window warmup. Orders are no-ops.
 
 === ACTIONS ===
 
@@ -69,6 +70,13 @@ if hhmm < "09:30" or hhmm > "14:30":
 6. Always check the return value of buy_option / sell_option for None before
    using the key.
 7. Keep it a single file with no external side effects at import time.
+8. If your strategy needs a lookback (e.g. S/R over N days, moving averages,
+   opening-range history from previous days), the user launches the run with
+   a matching `warmup_days` value. During warmup, `on_day_start` / `on_bar` /
+   `on_day_end` still fire so per-day state builds up, but `ctx.buy_option`,
+   `ctx.sell_option`, and `ctx.close` are silently no-ops. You do NOT need
+   to check `ctx.is_warmup` — just build history normally in your hooks and
+   the engine will only start allowing trades once the live window begins.
 
 === EXAMPLE OUTPUT SHAPE ===
 

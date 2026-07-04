@@ -48,6 +48,7 @@ def run(
     underlying: str = typer.Option("NSE_INDEX|Nifty 50"),
     capital: float = typer.Option(500_000),
     lot_size: int = typer.Option(0, help="Override lot size. 0 = auto-lookup from underlying."),
+    warmup_days: int = typer.Option(0, help="Trading days before --start to feed the strategy (no trades placed)."),
     out_dir: Path = typer.Option(Path("runs")),
 ) -> None:
     """Run a backtest and write results to `runs/<run_id>/`."""
@@ -63,6 +64,7 @@ def run(
             end=date.fromisoformat(end),
             starting_capital=capital,
             lot_size=resolved_lot,
+            warmup_days=warmup_days,
         )
         engine = BarEngine(cfg, reader, resolver)
         console.print(
@@ -82,6 +84,7 @@ def run(
             "capital": capital,
             "lot_size": resolved_lot,
             "underlying": underlying,
+            "warmup_days": warmup_days,
         },
     )
     _print_summary(metrics)

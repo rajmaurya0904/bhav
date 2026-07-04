@@ -193,6 +193,20 @@ export default function NewBacktestPage() {
           </div>
 
           <Field
+            label="Warmup days"
+            hint="Trading days before the start date fed to the strategy so lookback indicators (S/R, moving averages, opening range history) can seed. No trades are placed during warmup. Set to your longest lookback (e.g. 3 for a 3-day S/R strategy)."
+          >
+            <input
+              name="warmup_days"
+              type="number"
+              className="input tabular"
+              defaultValue={0}
+              min={0}
+              max={30}
+            />
+          </Field>
+
+          <Field
             label="Upstox access token"
             hint="Expires daily around 03:30 IST. Never committed to the runs directory."
           >
