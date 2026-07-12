@@ -1,5 +1,5 @@
 {
-  "name": "create-bhav",
+  "name": "@rajmaurya0904/create-bhav",
   "version": "0.1.0",
   "description": "Scaffold Bhav, an open-source NSE options backtesting engine, with one command",
   "license": "MIT",
@@ -16,5 +16,8 @@
   "files": ["bin"],
   "engines": {
     "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

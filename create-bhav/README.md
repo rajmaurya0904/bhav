@@ -3,7 +3,7 @@
 One-command scaffold for [Bhav](https://github.com/rajmaurya0904/bhav), an open-source NSE options backtesting engine.
 
 ```
-npx create-bhav [directory]
+npx @rajmaurya0904/create-bhav [directory]
 ```
 
 Defaults to `./bhav` if no directory is given. This:

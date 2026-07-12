@@ -28,7 +28,7 @@ v0.1 alpha. Single-leg options + spot only. Multi-leg and margin modeling in v0.
 One command (clones the repo, installs the Python package, installs frontend deps):
 
 ```powershell
-npx create-bhav
+npx @rajmaurya0904/create-bhav
 ```
 
 Or manually:
