@@ -25,7 +25,18 @@ v0.1 alpha. Single-leg options + spot only. Multi-leg and margin modeling in v0.
 
 ## Install
 
+One command (clones the repo, installs the Python package, installs frontend deps):
+
 ```powershell
+npx create-bhav
+```
+
+Or manually:
+
+```powershell
+git clone https://github.com/rajmaurya0904/bhav.git
+cd bhav
+
 # backend
 pip install -e .
 

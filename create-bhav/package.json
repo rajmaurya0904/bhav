@@ -1,0 +1,20 @@
+{
+  "name": "create-bhav",
+  "version": "0.1.0",
+  "description": "Scaffold Bhav, an open-source NSE options backtesting engine, with one command",
+  "license": "MIT",
+  "author": "Raj Maurya",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rajmaurya0904/bhav.git"
+  },
+  "homepage": "https://github.com/rajmaurya0904/bhav",
+  "keywords": ["nse", "options", "backtesting", "trading", "upstox", "india"],
+  "bin": {
+    "create-bhav": "./bin/create-bhav.js"
+  },
+  "files": ["bin"],
+  "engines": {
+    "node": ">=18"
+  }
+}
