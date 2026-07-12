@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
 import { Nav } from "@/components/nav";
+import { Footer } from "@/components/footer";
 import { MetricCard } from "@/components/metric-card";
 import { EquityCurve } from "@/components/equity-curve";
 import { DrawdownChart } from "@/components/drawdown-chart";
@@ -79,9 +80,9 @@ function CompletedLayout({ id, run }: { id: string; run: RunDetail }) {
   const trimmedDD = equityWithDD.map((p) => ({ ...p, t: p.t.slice(0, 10) }));
 
   return (
-    <div className="min-h-[100dvh]">
+    <div className="min-h-[100dvh] flex flex-col">
       <Nav />
-      <main className="mx-auto max-w-[1200px] px-6 pt-12 pb-24">
+      <main className="flex-1 mx-auto max-w-[1200px] px-6 pt-12 pb-24 w-full">
         <Breadcrumb id={id} />
 
         <div className="flex flex-wrap items-end justify-between gap-6 mb-10">
@@ -174,6 +175,7 @@ function CompletedLayout({ id, run }: { id: string; run: RunDetail }) {
 
         <RunMeta id={id} run={run} />
       </main>
+      <Footer />
     </div>
   );
 }
@@ -271,9 +273,9 @@ function EmptyChart() {
 
 function ProgressLayout({ id, run }: { id: string; run: RunDetail }) {
   return (
-    <div className="min-h-[100dvh]">
+    <div className="min-h-[100dvh] flex flex-col">
       <Nav />
-      <main className="mx-auto max-w-[720px] px-6 pt-24 pb-24">
+      <main className="flex-1 mx-auto max-w-[720px] px-6 pt-24 pb-24 w-full">
         <Breadcrumb id={id} />
         <h1 className="text-[36px] tracking-[-0.03em] font-medium">
           {run.status.status === "queued" ? "Queued" : "Running"}
@@ -291,15 +293,16 @@ function ProgressLayout({ id, run }: { id: string; run: RunDetail }) {
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
 
 function FailedLayout({ id, run }: { id: string; run: RunDetail }) {
   return (
-    <div className="min-h-[100dvh]">
+    <div className="min-h-[100dvh] flex flex-col">
       <Nav />
-      <main className="mx-auto max-w-[720px] px-6 pt-24 pb-24">
+      <main className="flex-1 mx-auto max-w-[720px] px-6 pt-24 pb-24 w-full">
         <Breadcrumb id={id} />
         <h1 className="text-[36px] tracking-[-0.03em] font-medium text-[var(--color-negative)]">
           Backtest failed
@@ -321,27 +324,29 @@ function FailedLayout({ id, run }: { id: string; run: RunDetail }) {
           </Link>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
 
 function LoadingLayout({ id }: { id: string }) {
   return (
-    <div className="min-h-[100dvh]">
+    <div className="min-h-[100dvh] flex flex-col">
       <Nav />
-      <main className="mx-auto max-w-[720px] px-6 pt-24 pb-24">
+      <main className="flex-1 mx-auto max-w-[720px] px-6 pt-24 pb-24 w-full">
         <Breadcrumb id={id} />
         <div className="text-[14px] text-[var(--color-ink-muted)]">Loading...</div>
       </main>
+      <Footer />
     </div>
   );
 }
 
 function ErrorLayout({ id, message }: { id: string; message: string }) {
   return (
-    <div className="min-h-[100dvh]">
+    <div className="min-h-[100dvh] flex flex-col">
       <Nav />
-      <main className="mx-auto max-w-[720px] px-6 pt-24 pb-24">
+      <main className="flex-1 mx-auto max-w-[720px] px-6 pt-24 pb-24 w-full">
         <Breadcrumb id={id} />
         <h1 className="text-[28px] font-medium">Cannot reach the API</h1>
         <p className="mt-3 text-[14px] text-[var(--color-ink-muted)]">
@@ -355,6 +360,7 @@ function ErrorLayout({ id, message }: { id: string; message: string }) {
           {message}
         </pre>
       </main>
+      <Footer />
     </div>
   );
 }
@@ -378,6 +384,7 @@ function RunMeta({ id, run }: { id: string; run: RunDetail }) {
     capital?: number;
     lot_size?: number;
     underlying?: string;
+    data_source?: string;
   };
   return (
     <section className="mt-12 pt-8 divider-t">
@@ -411,7 +418,11 @@ function RunMeta({ id, run }: { id: string; run: RunDetail }) {
           <div className="text-[12px] uppercase tracking-[0.08em] text-[var(--color-ink-muted)] mb-2">
             Data source
           </div>
-          <div>Upstox v2 historical candle API</div>
+          <div>
+            {cfg.data_source === "excel"
+              ? "Offline sample data (NIFTY)"
+              : "Upstox v2 historical candle API"}
+          </div>
         </div>
       </div>
     </section>

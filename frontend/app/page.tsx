@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Nav } from "@/components/nav";
+import { Footer } from "@/components/footer";
 import { listRuns, RunSummary, API_BASE } from "@/lib/api";
 import { fmtDate, fmtPct } from "@/lib/format";
 
@@ -30,9 +31,9 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="min-h-[100dvh]">
+    <div className="min-h-[100dvh] flex flex-col">
       <Nav />
-      <main className="mx-auto max-w-[1200px] px-6 pt-16 pb-24">
+      <main className="flex-1 mx-auto max-w-[1200px] px-6 pt-16 pb-24 w-full">
         <section className="max-w-[720px] mb-16">
           <h1 className="text-[52px] leading-[1.05] tracking-[-0.03em] font-medium">
             A backtester built for how Indian options
@@ -83,6 +84,7 @@ export default function HomePage() {
           <RunsTable runs={runs ?? []} />
         </section>
       </main>
+      <Footer />
     </div>
   );
 }

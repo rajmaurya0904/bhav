@@ -29,7 +29,9 @@ export function Nav() {
             New backtest
           </Link>
           <a
-            href="https://github.com"
+            href="https://github.com/rajmaurya0904/bhav/blob/main/docs/writing-strategies.md"
+            target="_blank"
+            rel="noopener noreferrer"
             className="hover:text-[var(--color-ink)] transition-colors"
           >
             Docs

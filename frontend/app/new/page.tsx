@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Nav } from "@/components/nav";
+import { Footer } from "@/components/footer";
 import { createRun, API_BASE } from "@/lib/api";
 import { AI_PROMPT } from "@/lib/ai-prompt";
 import { UNDERLYINGS, lotSizeFor } from "@/lib/underlyings";
@@ -43,9 +44,9 @@ export default function NewBacktestPage() {
   }
 
   return (
-    <div className="min-h-[100dvh]">
+    <div className="min-h-[100dvh] flex flex-col">
       <Nav />
-      <main className="mx-auto max-w-[900px] px-6 pt-12 pb-24">
+      <main className="flex-1 mx-auto max-w-[900px] px-6 pt-12 pb-24 w-full">
         <h1 className="text-[42px] tracking-[-0.03em] font-medium leading-[1.05]">
           Run a backtest
         </h1>
@@ -292,6 +293,7 @@ export default function NewBacktestPage() {
           }
         `}</style>
       </main>
+      <Footer />
     </div>
   );
 }
