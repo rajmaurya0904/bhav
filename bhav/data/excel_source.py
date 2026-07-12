@@ -150,22 +150,21 @@ class ExcelInstrumentResolver:
 
     def __init__(self, source: ExcelDataSource) -> None:
         self.source = source
-        self._on_date: date | None = None
 
     def expiries(self) -> list[date]:
         return self.source.expiries()
 
     def nearest_expiry(self, on_date: date, kind: str = "weekly") -> date | None:
-        self._on_date = on_date
         candidates = [e for e in self.expiries() if e >= on_date]
         return min(candidates) if candidates else None
 
     def atm_strike(self, spot: float) -> int:
         return int(round(spot / self.atm_step) * self.atm_step)
 
-    def resolve(self, expiry: date, strike: int, option_type: str) -> ResolvedOption | None:
-        on_date = self._on_date or expiry
-        contract = self.source.contract_for(on_date, option_type)
+    def resolve(
+        self, expiry: date, strike: int, option_type: str, on_date: date | None = None
+    ) -> ResolvedOption | None:
+        contract = self.source.contract_for(on_date or expiry, option_type)
         if contract is None:
             return None
         return ResolvedOption(contract=contract, adjusted=contract.strike != strike)

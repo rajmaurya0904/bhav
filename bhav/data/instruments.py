@@ -54,8 +54,10 @@ class InstrumentResolver:
         return self._chain_cache[expiry]
 
     def resolve(
-        self, expiry: date, strike: int, option_type: str
+        self, expiry: date, strike: int, option_type: str, on_date: date | None = None
     ) -> ResolvedOption | None:
+        # on_date is accepted for interface parity with offline resolvers;
+        # the Upstox chain is keyed purely by expiry so it isn't needed here.
         chain = self._chain(expiry)
         key = (strike, option_type)
         if key in chain:

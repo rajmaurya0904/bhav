@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import polars as pl
@@ -66,7 +66,7 @@ class ResultWriter:
             "run_id": run_id,
             "strategy": strategy_name,
             "config": config,
-            "created_at": datetime.utcnow().isoformat() + "Z",
+            "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "artifacts": {
                 "trades": str(trades_path.name),
                 "equity_curve": str(equity_path.name),

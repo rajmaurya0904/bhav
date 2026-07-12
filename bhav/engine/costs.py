@@ -28,8 +28,11 @@ class CostModel:
     slippage_ticks: float = 1.0
     tick_size: float = 0.05
 
-    def slippage(self, price: float, qty: int, is_buy: bool) -> float:
-        return self.slippage_ticks * self.tick_size * qty * (1 if is_buy else -1)
+    def fill_price(self, price: float, is_buy: bool) -> float:
+        """Bar price adjusted against you by `slippage_ticks`: buys fill higher,
+        sells fill lower. Never below one tick."""
+        adj = self.slippage_ticks * self.tick_size * (1 if is_buy else -1)
+        return max(price + adj, self.tick_size)
 
     def costs(
         self, price: float, qty: int, is_buy: bool, exercised_itm: bool = False

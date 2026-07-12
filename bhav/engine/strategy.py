@@ -38,6 +38,7 @@ class Context:
         portfolio: Portfolio,
         lot_size: int,
         is_warmup: bool = False,
+        allow_new_orders: bool = True,
     ) -> None:
         self.date = current_date
         self.bar = current_bar
@@ -46,6 +47,7 @@ class Context:
         self.portfolio = portfolio
         self.lot_size = lot_size
         self.is_warmup = is_warmup
+        self.allow_new_orders = allow_new_orders
 
     def spot(self) -> float:
         return self.bar.close
@@ -58,14 +60,14 @@ class Context:
         lots: int = 1,
         expiry: date | None = None,
     ) -> str | None:
-        if self.is_warmup:
+        if self.is_warmup or not self.allow_new_orders:
             return None
         exp = expiry or self.resolver.nearest_expiry(self.date)
         if exp is None:
             return None
         atm = self.resolver.atm_strike(self.spot())
         strike = atm + strike_offset * self.resolver.atm_step
-        resolved = self.resolver.resolve(exp, strike, option_type)
+        resolved = self.resolver.resolve(exp, strike, option_type, on_date=self.date)
         if resolved is None:
             return None
         bars = self.reader.option_bars(resolved.contract.instrument_key, self.date)
@@ -75,6 +77,8 @@ class Context:
         if entry_price is None:
             return None
         qty = lots * self.lot_size
+        if qty > 0 and entry_price * qty > self.portfolio.cash:
+            return None  # can't afford the premium; reject like any other failed fill
         symbol = f"{self.resolver.underlying_key.split('|')[-1]}{exp:%y%m%d}{strike}{option_type}"
         self.portfolio.open(
             instrument_key=resolved.contract.instrument_key,
@@ -107,12 +111,15 @@ class Context:
 
     @staticmethod
     def _price_at(bars: "pl.DataFrame", ts: datetime) -> float | None:
+        """Close of the bar at `ts`, else the most recent bar BEFORE it.
+        Never a later bar - that would be lookahead. None if nothing has
+        traded yet by `ts`."""
         if bars.is_empty():
             return None
-        matched = bars.filter(bars["timestamp"] == ts)
-        if matched.is_empty():
-            return float(bars["close"][-1])
-        return float(matched["close"][0])
+        at_or_before = bars.filter(bars["timestamp"] <= ts)
+        if at_or_before.is_empty():
+            return None
+        return float(at_or_before["close"][-1])
 
 
 class Strategy(ABC):

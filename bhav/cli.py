@@ -63,6 +63,12 @@ def run(
         raise typer.BadParameter("--data-source must be 'upstox' or 'excel'")
     if data_source == "upstox" and not token:
         raise typer.BadParameter("--token (or UPSTOX_TOKEN) is required for --data-source upstox")
+    if data_source == "excel" and underlying != "NSE_INDEX|Nifty 50":
+        raise typer.BadParameter(
+            "the bundled excel dataset is NIFTY 50 only; drop --underlying or use --data-source upstox"
+        )
+    if date.fromisoformat(start) > date.fromisoformat(end):
+        raise typer.BadParameter(f"--start {start} is after --end {end}")
 
     strat = _load_strategy(strategy_path)
     resolved_lot = lot_size or default_lot_size(underlying)
@@ -118,10 +124,10 @@ def _print_summary(m):
     t.add_row("Total return", f"{m.total_return_pct:+.2f}%")
     t.add_row("CAGR", f"{m.cagr_pct:+.2f}%")
     t.add_row("Sharpe", f"{m.sharpe:.2f}")
-    t.add_row("Sortino", f"{m.sortino:.2f}")
+    t.add_row("Sortino", "inf (no losing bars)" if m.sortino is None else f"{m.sortino:.2f}")
     t.add_row("Max drawdown", f"{m.max_drawdown_pct:.2f}%")
     t.add_row("Trades", f"{m.total_trades} ({m.win_rate_pct:.1f}% win rate)")
-    t.add_row("Profit factor", f"{m.profit_factor:.2f}")
+    t.add_row("Profit factor", "inf (no losses)" if m.profit_factor is None else f"{m.profit_factor:.2f}")
     t.add_row("Total costs", f"Rs {m.total_costs:,.0f}")
     console.print(t)
 

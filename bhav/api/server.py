@@ -14,7 +14,7 @@ import json
 import threading
 import traceback
 import uuid
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -60,7 +60,7 @@ def _write_status(run_id: str, **fields) -> None:
         except Exception:
             existing = {}
     existing.update(fields)
-    existing["updated_at"] = datetime.utcnow().isoformat() + "Z"
+    existing["updated_at"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     path.write_text(json.dumps(existing, indent=2, default=str))
 
 
@@ -235,6 +235,16 @@ async def create_run(
         raise HTTPException(400, "data_source must be 'upstox' or 'excel'")
     if data_source == "upstox" and not upstox_token:
         raise HTTPException(400, "upstox_token is required when data_source is 'upstox'")
+    if data_source == "excel" and underlying != "NSE_INDEX|Nifty 50":
+        raise HTTPException(400, "the bundled excel dataset is NIFTY 50 only")
+
+    try:
+        start_d = date.fromisoformat(start_date)
+        end_d = date.fromisoformat(end_date)
+    except ValueError as e:
+        raise HTTPException(400, f"bad date format: {e}") from e
+    if start_d > end_d:
+        raise HTTPException(400, f"start_date {start_date} is after end_date {end_date}")
 
     resolved_lot = lot_size or default_lot_size(underlying)
     if not strategy.filename or not strategy.filename.endswith(".py"):
@@ -252,12 +262,6 @@ async def create_run(
     strategy_path.write_text(content, encoding="utf-8")
 
     _write_status(run_id, status="queued", progress="submitted")
-
-    try:
-        start_d = date.fromisoformat(start_date)
-        end_d = date.fromisoformat(end_date)
-    except ValueError as e:
-        raise HTTPException(400, f"bad date format: {e}") from e
 
     thread = threading.Thread(
         target=_run_backtest_thread,

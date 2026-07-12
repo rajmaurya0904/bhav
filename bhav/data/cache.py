@@ -78,5 +78,5 @@ class ParquetCache:
                 pl.col("timestamp").str.to_datetime(time_zone="Asia/Kolkata")
             )
             .sort("timestamp")
-            .unique(subset=["timestamp"], keep="last")
+            .unique(subset=["timestamp"], keep="last", maintain_order=True)
         )

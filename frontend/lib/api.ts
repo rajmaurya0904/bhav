@@ -41,7 +41,7 @@ export type Metrics = {
   total_return_pct: number;
   cagr_pct: number;
   sharpe: number;
-  sortino: number;
+  sortino: number | null;
   max_drawdown_pct: number;
   max_drawdown_amount: number;
   total_trades: number;
@@ -50,7 +50,7 @@ export type Metrics = {
   win_rate_pct: number;
   avg_win: number;
   avg_loss: number;
-  profit_factor: number;
+  profit_factor: number | null;
   expectancy: number;
   total_costs: number;
   exposure_time_pct: number;

@@ -198,7 +198,7 @@ function MetricsGrid({ m }: { m: NonNullable<RunDetail["metrics"]> }) {
         <MetricCard
           label="Sharpe"
           value={m.sharpe.toFixed(2)}
-          sub={`Sortino ${m.sortino.toFixed(2)}`}
+          sub={`Sortino ${m.sortino === null ? "inf" : m.sortino.toFixed(2)}`}
         />
         <MetricCard
           label="Max drawdown"
@@ -216,7 +216,7 @@ function MetricsGrid({ m }: { m: NonNullable<RunDetail["metrics"]> }) {
         <MetricCard
           label="Win rate"
           value={fmtPct(m.win_rate_pct, 1)}
-          sub={`Profit factor ${m.profit_factor.toFixed(2)}`}
+          sub={`Profit factor ${m.profit_factor === null ? "inf" : m.profit_factor.toFixed(2)}`}
         />
         <MetricCard
           label="Avg win / loss"

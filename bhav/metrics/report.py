@@ -15,7 +15,7 @@ class MetricsReport:
     total_return_pct: float
     cagr_pct: float
     sharpe: float
-    sortino: float
+    sortino: float | None  # None = no losing bars (nothing to divide by)
     max_drawdown_pct: float
     max_drawdown_amount: float
     total_trades: int
@@ -24,7 +24,7 @@ class MetricsReport:
     win_rate_pct: float
     avg_win: float
     avg_loss: float
-    profit_factor: float
+    profit_factor: float | None  # None = no losing trades ("infinite")
     expectancy: float
     total_costs: float
     exposure_time_pct: float
@@ -68,17 +68,17 @@ def _sharpe(rets: list[float], periods_per_year: int = 252 * 375) -> float:
     return (mean / std) * math.sqrt(periods_per_year)
 
 
-def _sortino(rets: list[float], periods_per_year: int = 252 * 375) -> float:
+def _sortino(rets: list[float], periods_per_year: int = 252 * 375) -> float | None:
     if not rets:
         return 0.0
     mean = sum(rets) / len(rets)
     downside = [r for r in rets if r < 0]
     if not downside:
-        return 0.0
+        return None  # no downside bars: undefined (infinitely good), not zero
     dvar = sum(r * r for r in downside) / len(rets)
     dstd = math.sqrt(dvar)
     if dstd == 0:
-        return 0.0
+        return None
     return (mean / dstd) * math.sqrt(periods_per_year)
 
 
@@ -95,19 +95,20 @@ def compute_metrics(portfolio: Portfolio) -> MetricsReport:
     max_dd_pct, max_dd_amt = _max_dd(equity)
     trades: list[Trade] = portfolio.closed_trades
     wins = [t for t in trades if t.pnl_net > 0]
-    losses = [t for t in trades if t.pnl_net <= 0]
+    losses = [t for t in trades if t.pnl_net < 0]  # scratch (exactly 0) is neither
     win_rate = (len(wins) / len(trades) * 100) if trades else 0.0
     avg_win = sum(t.pnl_net for t in wins) / len(wins) if wins else 0.0
     avg_loss = sum(t.pnl_net for t in losses) / len(losses) if losses else 0.0
     gross_win = sum(t.pnl_net for t in wins)
     gross_loss = abs(sum(t.pnl_net for t in losses))
-    pf = gross_win / gross_loss if gross_loss > 0 else 0.0
-    expectancy = (
-        (win_rate / 100 * avg_win) + ((1 - win_rate / 100) * avg_loss)
-        if trades else 0.0
-    )
-    bars_with_position = sum(1 for _, v in equity if v != portfolio.starting_capital)
-    exposure_pct = (bars_with_position / len(equity) * 100) if equity else 0.0
+    if gross_loss > 0:
+        pf = gross_win / gross_loss
+    else:
+        pf = None if gross_win > 0 else 0.0  # None = wins, zero losses ("infinite")
+    expectancy = sum(t.pnl_net for t in trades) / len(trades) if trades else 0.0
+    exp_curve = portfolio.exposure_curve
+    bars_in_position = sum(1 for in_pos in exp_curve if in_pos)
+    exposure_pct = (bars_in_position / len(exp_curve) * 100) if exp_curve else 0.0
     return MetricsReport(
         starting_capital=portfolio.starting_capital,
         ending_equity=ending,
