@@ -149,4 +149,4 @@ class OpeningRangeBreakout(Strategy):
         self._trail_steps_done = 0
 
 
-strategy = OpeningRangeBreakout(mode="FADE")
+strategy = OpeningRangeBreakout(mode="BREAKOUT")
