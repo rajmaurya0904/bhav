@@ -15,12 +15,12 @@ Open-source options backtesting engine for NSE (India), built specifically aroun
 
 ## Status
 
-v0.1 alpha. Single-leg options + spot only. Multi-leg and margin modeling in v0.2.
+v0.1 alpha. Single-leg options + spot only, Upstox-only. Multi-leg and margin modeling in v0.2. More brokers (Zerodha Kite, Angel One, Fyers, ...) are on the roadmap — the data layer (`bhav/data/upstox_client.py`) is written as a single swappable client so adding another broker means implementing the same 4-endpoint interface, not touching the engine.
 
 ## Requirements
 
 - Python 3.11+
-- An Upstox account with API access and an access token (expires daily around 03:30 IST — generate a fresh one each session)
+- An Upstox Pro account with historical data API access, and an access token (expires daily around 03:30 IST — generate a fresh one each session)
 - Node.js 20+ (only needed for the frontend)
 
 ## Install
