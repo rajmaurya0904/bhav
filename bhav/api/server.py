@@ -24,6 +24,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from bhav.cli import _load_strategy
 from bhav.data.cache import ParquetCache
+from bhav.data.excel_source import ExcelDataReader, ExcelDataSource, ExcelInstrumentResolver
 from bhav.data.instruments import InstrumentResolver
 from bhav.data.reader import DataReader
 from bhav.data.underlyings import UNDERLYINGS, default_lot_size
@@ -66,34 +67,42 @@ def _write_status(run_id: str, **fields) -> None:
 def _run_backtest_thread(
     run_id: str,
     strategy_path: Path,
-    token: str,
+    token: str | None,
     underlying: str,
     start: date,
     end: date,
     capital: float,
     lot_size: int,
     warmup_days: int = 0,
+    data_source: str = "upstox",
 ) -> None:
     try:
         _write_status(run_id, status="running", progress="loading_strategy")
         strategy = _load_strategy(strategy_path)
         _write_status(run_id, status="running", progress="fetching_data", strategy_name=strategy.name)
 
-        with UpstoxClient(token) as client:
-            cache = ParquetCache()
-            reader = DataReader(client, cache)
-            resolver = InstrumentResolver(client, underlying)
-            cfg = EngineConfig(
-                underlying_key=underlying,
-                start=start,
-                end=end,
-                starting_capital=capital,
-                lot_size=lot_size,
-                warmup_days=warmup_days,
-            )
-            engine = BarEngine(cfg, reader, resolver)
+        cfg = EngineConfig(
+            underlying_key=underlying,
+            start=start,
+            end=end,
+            starting_capital=capital,
+            lot_size=lot_size,
+            warmup_days=warmup_days,
+        )
+
+        if data_source == "excel":
+            source = ExcelDataSource()
+            engine = BarEngine(cfg, ExcelDataReader(source), ExcelInstrumentResolver(source))
             _write_status(run_id, progress="simulating")
             portfolio = engine.run(strategy)
+        else:
+            with UpstoxClient(token) as client:
+                cache = ParquetCache()
+                reader = DataReader(client, cache)
+                resolver = InstrumentResolver(client, underlying)
+                engine = BarEngine(cfg, reader, resolver)
+                _write_status(run_id, progress="simulating")
+                portfolio = engine.run(strategy)
 
         metrics = compute_metrics(portfolio)
         writer = ResultWriter(RUNS_DIR)
@@ -107,6 +116,7 @@ def _run_backtest_thread(
                 "lot_size": lot_size,
                 "underlying": underlying,
                 "warmup_days": warmup_days,
+                "data_source": data_source,
             },
         )
         _write_status(run_id, status="completed", progress="done")
@@ -212,14 +222,20 @@ def get_run(run_id: str) -> dict:
 async def create_run(
     background: BackgroundTasks,
     strategy: UploadFile,
-    upstox_token: str = Form(...),
     start_date: str = Form(...),
     end_date: str = Form(...),
+    data_source: str = Form("upstox"),
+    upstox_token: str | None = Form(None),
     underlying: str = Form("NSE_INDEX|Nifty 50"),
     capital: float = Form(500_000),
     lot_size: int = Form(0),
     warmup_days: int = Form(0),
 ) -> dict:
+    if data_source not in ("upstox", "excel"):
+        raise HTTPException(400, "data_source must be 'upstox' or 'excel'")
+    if data_source == "upstox" and not upstox_token:
+        raise HTTPException(400, "upstox_token is required when data_source is 'upstox'")
+
     resolved_lot = lot_size or default_lot_size(underlying)
     if not strategy.filename or not strategy.filename.endswith(".py"):
         raise HTTPException(400, "strategy must be a .py file")
@@ -245,7 +261,10 @@ async def create_run(
 
     thread = threading.Thread(
         target=_run_backtest_thread,
-        args=(run_id, strategy_path, upstox_token, underlying, start_d, end_d, capital, resolved_lot, warmup_days),
+        args=(
+            run_id, strategy_path, upstox_token, underlying, start_d, end_d,
+            capital, resolved_lot, warmup_days, data_source,
+        ),
         daemon=True,
     )
     thread.start()

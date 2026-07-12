@@ -12,16 +12,18 @@ Open-source options backtesting engine for NSE (India), built specifically aroun
 - Local Parquet cache — every Upstox candle is fetched once, then reused across runs
 - Per-underlying lot size / ATM-step table (NIFTY, BANKNIFTY, FINNIFTY, MIDCPNIFTY, NIFTYNXT50, SENSEX, BANKEX, SENSEX50) with auto-lookup
 - FastAPI backend + Next.js frontend: upload a strategy file, set token/dates/capital, run a real backtest, see equity curve, drawdown, P&L distribution, and full trade log
+- No Upstox access? A bundled 1-year NIFTY sample dataset (`sample_data/nifty_1y_1min.xlsx`) lets anyone run every example strategy offline, no token required
 
 ## Status
 
-v0.1 alpha. Single-leg options + spot only, Upstox-only. Multi-leg and margin modeling in v0.2. More brokers (Zerodha Kite, Angel One, Fyers, ...) are on the roadmap — the data layer (`bhav/data/upstox_client.py`) is written as a single swappable client so adding another broker means implementing the same 4-endpoint interface, not touching the engine.
+v0.1 alpha. Single-leg options + spot only, Upstox-only for live data. Multi-leg and margin modeling in v0.2. More brokers (Zerodha Kite, Angel One, Fyers, ...) are on the roadmap — the data layer (`bhav/data/upstox_client.py`) is written as a single swappable client so adding another broker means implementing the same 4-endpoint interface, not touching the engine.
 
 ## Requirements
 
 - Python 3.11+
-- An Upstox Pro account with historical data API access, and an access token (expires daily around 03:30 IST — generate a fresh one each session)
 - Node.js 20+ (only needed for the frontend)
+- To backtest with live/full data: an Upstox Pro account with historical data API access, and an access token (expires daily around 03:30 IST — generate a fresh one each session)
+- To try Bhav without a broker account: nothing extra. Use `--data-source excel` (CLI) or "Sample data" (web UI) to run against the bundled NIFTY dataset
 
 ## Install
 
@@ -47,18 +49,28 @@ npm install
 
 ## Quickstart — CLI
 
+With a live Upstox token:
+
 ```powershell
 $env:UPSTOX_TOKEN = "your_token"
 bhav run examples/orb_v1.py --start 2025-08-01 --end 2025-11-30
 ```
 
+Or with no broker account at all, using the bundled sample dataset:
+
+```powershell
+bhav run examples/orb_v1.py --start 2025-08-01 --end 2025-11-30 --data-source excel
+```
+
 Useful flags:
 
 ```
---underlying "NSE_INDEX|Nifty 50"   # default; see lot-size table below for others
+--underlying "NSE_INDEX|Nifty 50"   # default; see lot-size table below for others (upstox mode only)
 --capital 500000                    # starting capital, default 500000
 --lot-size 0                        # 0 = auto-lookup per underlying, or set explicitly
 --warmup-days 3                     # pre-window replay so lookback strategies have history from day 1
+--data-source upstox|excel          # default upstox; excel = bundled offline NIFTY dataset, no token needed
+--excel-path path/to/file.xlsx      # only with --data-source excel; defaults to sample_data/nifty_1y_1min.xlsx
 ```
 
 Results are written to `runs/<run_id>/` as `trades.parquet`, `equity_curve.parquet`, `metrics.json`, and `manifest.json` (with a SHA256 checksum of the metrics for reproducibility).
@@ -74,7 +86,16 @@ cd frontend
 npm run dev
 ```
 
-Open `http://localhost:3000`. Go to `/new`, upload a strategy `.py` file, paste your Upstox token, set dates/underlying/capital/lot size/warmup days, and run. The results page polls until the run completes and shows total return, CAGR, Sharpe/Sortino, max drawdown, win rate, profit factor, expectancy, an equity curve, a drawdown curve, a P&L distribution, and the full trade log.
+Open `http://localhost:3000`. Go to `/new`, upload a strategy `.py` file, pick a data source (Upstox live, or the bundled sample data — no token needed), set dates/underlying/capital/lot size/warmup days, and run. The results page polls until the run completes and shows total return, CAGR, Sharpe/Sortino, max drawdown, win rate, profit factor, expectancy, an equity curve, a drawdown curve, a P&L distribution, and the full trade log.
+
+## Offline sample dataset
+
+`sample_data/nifty_1y_1min.xlsx` bundles a year of NIFTY 50 data (Jul 2025-Jun 2026) so anyone can try Bhav without an Upstox account:
+
+- `Spot_1min`: 1-minute NIFTY 50 spot candles
+- `ATM_Options_1min`: 1-minute candles for that day's real ATM CE and PE (nearest weekly expiry)
+
+This is a fixed historical snapshot, not a full option chain — `strike_offset` in `ctx.buy_option()` is ignored in excel mode; you always get the real ATM contract for that trading day, whatever it was. Good enough to validate strategy logic and cost modeling end to end; switch to `--data-source upstox` for full chain access (other strikes, other underlyings, custom date ranges beyond what's bundled).
 
 ## Write your own strategy
 

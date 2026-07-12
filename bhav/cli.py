@@ -11,6 +11,7 @@ from rich.console import Console
 from rich.table import Table
 
 from bhav.data.cache import ParquetCache
+from bhav.data.excel_source import DEFAULT_EXCEL_PATH, ExcelDataReader, ExcelDataSource, ExcelInstrumentResolver
 from bhav.data.instruments import InstrumentResolver
 from bhav.data.reader import DataReader
 from bhav.data.underlyings import default_lot_size
@@ -44,7 +45,13 @@ def run(
     strategy_path: Path = typer.Argument(..., help="Path to a Python file with `strategy = MyStrategy()`"),
     start: str = typer.Option(..., help="YYYY-MM-DD"),
     end: str = typer.Option(..., help="YYYY-MM-DD"),
-    token: str = typer.Option(..., envvar="UPSTOX_TOKEN"),
+    token: str | None = typer.Option(None, envvar="UPSTOX_TOKEN", help="Required unless --data-source excel."),
+    data_source: str = typer.Option(
+        "upstox", help="'upstox' (live API, needs --token) or 'excel' (bundled offline NIFTY dataset, no token needed)."
+    ),
+    excel_path: Path = typer.Option(
+        DEFAULT_EXCEL_PATH, help="Only used with --data-source excel. Path to a workbook with Spot_1min/ATM_Options_1min sheets."
+    ),
     underlying: str = typer.Option("NSE_INDEX|Nifty 50"),
     capital: float = typer.Option(500_000),
     lot_size: int = typer.Option(0, help="Override lot size. 0 = auto-lookup from underlying."),
@@ -52,12 +59,15 @@ def run(
     out_dir: Path = typer.Option(Path("runs")),
 ) -> None:
     """Run a backtest and write results to `runs/<run_id>/`."""
+    if data_source not in ("upstox", "excel"):
+        raise typer.BadParameter("--data-source must be 'upstox' or 'excel'")
+    if data_source == "upstox" and not token:
+        raise typer.BadParameter("--token (or UPSTOX_TOKEN) is required for --data-source upstox")
+
     strat = _load_strategy(strategy_path)
     resolved_lot = lot_size or default_lot_size(underlying)
-    with UpstoxClient(token) as client:
-        cache = ParquetCache()
-        reader = DataReader(client, cache)
-        resolver = InstrumentResolver(client, underlying)
+
+    def _run_with(reader, resolver):
         cfg = EngineConfig(
             underlying_key=underlying,
             start=date.fromisoformat(start),
@@ -69,9 +79,18 @@ def run(
         engine = BarEngine(cfg, reader, resolver)
         console.print(
             f"[bold]Running[/bold] {strat.name} from {start} to {end} "
-            f"(underlying={underlying}, lot={resolved_lot})..."
+            f"(underlying={underlying}, lot={resolved_lot}, source={data_source})..."
         )
-        portfolio = engine.run(strat)
+        return engine.run(strat)
+
+    if data_source == "excel":
+        source = ExcelDataSource(excel_path)
+        portfolio = _run_with(ExcelDataReader(source), ExcelInstrumentResolver(source))
+    else:
+        with UpstoxClient(token) as client:
+            cache = ParquetCache()
+            portfolio = _run_with(DataReader(client, cache), InstrumentResolver(client, underlying))
+
     metrics = compute_metrics(portfolio)
     run_id = f"{datetime.now():%Y%m%d_%H%M%S}_{uuid.uuid4().hex[:6]}"
     writer = ResultWriter(out_dir)
@@ -83,6 +102,7 @@ def run(
             "end": end,
             "capital": capital,
             "lot_size": resolved_lot,
+            "data_source": data_source,
             "underlying": underlying,
             "warmup_days": warmup_days,
         },

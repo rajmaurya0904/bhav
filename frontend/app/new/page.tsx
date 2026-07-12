@@ -15,6 +15,7 @@ export default function NewBacktestPage() {
   const [copied, setCopied] = useState(false);
   const [underlying, setUnderlying] = useState(UNDERLYINGS[0].key);
   const [lotSize, setLotSize] = useState(UNDERLYINGS[0].lot_size);
+  const [dataSource, setDataSource] = useState<"upstox" | "excel">("upstox");
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -148,13 +149,44 @@ export default function NewBacktestPage() {
           </div>
 
           <Field
+            label="Data source"
+            hint={
+              dataSource === "excel"
+                ? "Bundled 1-year NIFTY 50 sample (Jul 2025-Jun 2026), spot + daily ATM CE/PE. No token needed. NIFTY only, ATM only (strike offsets are ignored)."
+                : "Live Upstox historical + expired-instruments API. Needs a fresh access token below."
+            }
+          >
+            <select
+              name="data_source"
+              className="input"
+              value={dataSource}
+              onChange={(e) => {
+                const v = e.target.value as "upstox" | "excel";
+                setDataSource(v);
+                if (v === "excel") {
+                  setUnderlying(UNDERLYINGS[0].key);
+                  setLotSize(UNDERLYINGS[0].lot_size);
+                }
+              }}
+            >
+              <option value="upstox">Upstox (live API, your token)</option>
+              <option value="excel">Sample data (offline, no token)</option>
+            </select>
+          </Field>
+
+          <Field
             label="Underlying"
-            hint="Lot size auto-fills from the latest NSE/BSE spec below. You can override it."
+            hint={
+              dataSource === "excel"
+                ? "Sample data only covers NIFTY 50."
+                : "Lot size auto-fills from the latest NSE/BSE spec below. You can override it."
+            }
           >
             <select
               name="underlying"
               className="input"
               value={underlying}
+              disabled={dataSource === "excel"}
               onChange={(e) => {
                 setUnderlying(e.target.value);
                 setLotSize(lotSizeFor(e.target.value));
@@ -206,18 +238,20 @@ export default function NewBacktestPage() {
             />
           </Field>
 
-          <Field
-            label="Upstox access token"
-            hint="Expires daily around 03:30 IST. Never committed to the runs directory."
-          >
-            <input
-              name="upstox_token"
-              type="password"
-              className="input font-mono"
-              placeholder="eyJ0eXAi..."
-              required
-            />
-          </Field>
+          {dataSource === "upstox" && (
+            <Field
+              label="Upstox access token"
+              hint="Expires daily around 03:30 IST. Never committed to the runs directory."
+            >
+              <input
+                name="upstox_token"
+                type="password"
+                className="input font-mono"
+                placeholder="eyJ0eXAi..."
+                required
+              />
+            </Field>
+          )}
 
           {error && (
             <div className="rounded-md border border-[var(--color-negative)]/40 bg-[var(--color-negative)]/5 px-4 py-3 text-[13px] text-[var(--color-negative)]">

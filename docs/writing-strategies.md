@@ -253,11 +253,11 @@ Results are written to `runs/<run_id>/` with:
 - `metrics.json` — CAGR, Sharpe, Sortino, drawdown, win rate, expectancy
 - `manifest.json` — config + checksums for reproducibility
 
+No Upstox account? Add `--data-source excel` and drop `--token`/`--underlying`/`--lot-size` — it runs against the bundled `sample_data/nifty_1y_1min.xlsx` (NIFTY 50 spot + that day's real ATM CE/PE, no full chain). See [README.md#offline-sample-dataset](../README.md#offline-sample-dataset) for what it covers and its limits.
+
 ### From the frontend
 
-Open `http://localhost:3000/new`, point it at your strategy file, set date range and capital, hit **Start backtest**. When the run completes it shows up on the Runs list. Click through for the dashboard view.
-
-*(The `/new` form currently displays the UI; wiring it to actually kick off a run is v0.2 — for now use the CLI.)*
+Open `http://localhost:3000/new`, upload your strategy file, pick a data source (Upstox live token, or the bundled sample data with no token needed), set date range/underlying/capital/lot size/warmup days, hit **Start backtest**. The run polls live and lands on the dashboard view when it completes.
 
 ### Where to put your strategy file
 
