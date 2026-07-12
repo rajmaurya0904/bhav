@@ -26,6 +26,7 @@ dist/
 # Editor
 .vscode/
 .idea/
+.claude/
 .DS_Store
 Thumbs.db
 
