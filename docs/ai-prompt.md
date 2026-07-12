@@ -140,14 +140,20 @@ Output ONLY the Python code, nothing else.
 2. Paste into your AI chat.
 3. Replace the last section with your idea. Be specific — the more precise you are about entry/exit, the better the code.
 4. Save the returned code as `my_strategy.py`.
-5. Run:
+5. Run it. With a live Upstox token:
 
     ```powershell
     $env:UPSTOX_TOKEN = "your_token"
     bhav run my_strategy.py --start 2025-08-01 --end 2025-11-30
     ```
 
-Or upload the file on the `/new` page in the frontend.
+    No Upstox account? Run the exact same file against the bundled offline NIFTY dataset instead, no token needed:
+
+    ```powershell
+    bhav run my_strategy.py --start 2025-08-01 --end 2025-11-30 --data-source excel
+    ```
+
+Or upload the file on the `/new` page in the frontend and pick "Sample data (offline, no token)" as the data source.
 
 ## Tips for good AI-generated strategies
 
