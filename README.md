@@ -1,8 +1,22 @@
-# Bhav
+<div align="center">
 
-*Hindi/Marathi/Gujarati word for "market rate" — what every Indian trader means when they say "aaj ka bhav kya hai?"*
+<img src="docs/assets/logo.svg" alt="Bhav" width="116" />
 
-Open-source options backtesting engine for NSE (India), built specifically around Upstox's historical-data endpoints. Write a strategy in Python, run it against real 1-minute spot + option data, get a deterministic Parquet result and a full metrics dashboard.
+# Bhav ( `bhav` )
+
+**Open-source options backtesting engine for NSE (India).** Write a strategy in Python, run it against real 1-minute spot + option data, and get a deterministic Parquet result with a full metrics dashboard.
+
+[Install](#install) · [Quickstart](#quickstart--cli) · [Generate with Claude](#generate-with-claude-no-api-key) · [Writing strategies](docs/writing-strategies.md) · [How it works](#how-it-works) · [License](#license)
+
+<br/>
+
+<img src="docs/assets/hero.svg" alt="bhav run — NIFTY short-straddle backtest with Monte Carlo robustness bands" width="840" />
+
+<em>Hindi / Marathi / Gujarati for “market rate” — what every Indian trader means by “aaj ka bhav kya hai?”</em>
+
+</div>
+
+Open-source and built specifically around Upstox's historical-data endpoints — expired option chains included, so you can backtest premiums for contracts that expired months or years ago, not just currently-listed ones.
 
 - Bar-by-bar simulation on 1-minute NIFTY/BANKNIFTY/SENSEX (and other index) spot + option chain data
 - Strategy API modeled on lifecycle hooks (`on_bar`, `on_day_start`, `on_day_end`, ...) — write plain Python, get deterministic Parquet output

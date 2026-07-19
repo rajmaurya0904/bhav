@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="132" height="104" viewBox="0 0 132 104">
+  <!-- candlestick trio: market rate -->
+  <g stroke-linecap="round">
+    <!-- down candle -->
+    <line x1="30" y1="30" x2="30" y2="82" stroke="#e34c4c" stroke-width="3"/>
+    <rect x="21" y="46" width="18" height="24" rx="4" fill="#e34c4c"/>
+    <!-- up candle -->
+    <line x1="66" y1="20" x2="66" y2="88" stroke="#f0883e" stroke-width="3"/>
+    <rect x="57" y="40" width="18" height="34" rx="4" fill="#f0883e"/>
+    <!-- up candle, tallest -->
+    <line x1="102" y1="12" x2="102" y2="74" stroke="#3fb950" stroke-width="3"/>
+    <rect x="93" y="24" width="18" height="36" rx="4" fill="#3fb950"/>
+  </g>
+</svg>
