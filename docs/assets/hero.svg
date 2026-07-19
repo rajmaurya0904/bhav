@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="540" viewBox="0 0 920 540" font-family="'SF Mono','Cascadia Code','JetBrains Mono','Fira Code',Consolas,monospace">
+  <defs>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#f0883e"/>
+      <stop offset="0.5" stop-color="#e34c4c"/>
+      <stop offset="1" stop-color="#d29922"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="22" flood-color="#000000" flood-opacity="0.55"/>
+    </filter>
+  </defs>
+
+  <!-- backdrop -->
+  <rect width="920" height="540" fill="#05070c"/>
+
+  <!-- window -->
+  <g filter="url(#shadow)">
+    <rect x="16" y="16" width="888" height="508" rx="12" fill="#0d1117" stroke="#20262f" stroke-width="1"/>
+  </g>
+  <!-- top accent -->
+  <rect x="16" y="16" width="888" height="3" rx="1.5" fill="url(#accent)"/>
+  <!-- title bar -->
+  <rect x="17" y="19" width="886" height="34" fill="#161b22"/>
+  <circle cx="40" cy="36" r="6" fill="#ff5f56"/>
+  <circle cx="60" cy="36" r="6" fill="#ffbd2e"/>
+  <circle cx="80" cy="36" r="6" fill="#27c93f"/>
+  <text x="460" y="40" text-anchor="middle" font-size="12" fill="#7d8590">straddle_sell_0920 · bhav run</text>
+
+  <!-- command -->
+  <text font-size="13.5" xml:space="preserve">
+    <tspan x="40" y="86" fill="#58a6ff">$</tspan><tspan fill="#c9d1d9"> bhav run examples/straddle_sell_920.py </tspan><tspan fill="#8b949e">--start</tspan><tspan fill="#a5d6ff"> 2026-07-01 </tspan><tspan fill="#8b949e">--end</tspan><tspan fill="#a5d6ff"> 2026-07-14 </tspan><tspan fill="#8b949e">--data-source</tspan><tspan fill="#a5d6ff"> upstox</tspan>
+  </text>
+  <text x="40" y="110" font-size="13" fill="#6e7681" xml:space="preserve">Running straddle_sell_0920  (underlying=NSE_INDEX|Nifty 50, lot=65, source=upstox)…</text>
+
+  <!-- Summary box -->
+  <rect x="40" y="128" width="388" height="234" rx="8" fill="#0b0f16" stroke="#30363d" stroke-width="1"/>
+  <text x="234" y="152" text-anchor="middle" font-size="13" font-weight="700" fill="#f0883e">Summary</text>
+  <line x1="56" y1="164" x2="412" y2="164" stroke="#20262f"/>
+  <g font-size="13">
+    <text x="60" y="188" fill="#8b949e">Total return</text>   <text x="252" y="188" fill="#3fb950">+1.53%</text>
+    <text x="60" y="212" fill="#8b949e">CAGR</text>           <text x="252" y="212" fill="#3fb950">+53.23%</text>
+    <text x="60" y="236" fill="#8b949e">Sharpe</text>         <text x="252" y="236" fill="#c9d1d9">4.73</text>
+    <text x="60" y="260" fill="#8b949e">Sortino</text>        <text x="252" y="260" fill="#c9d1d9">6.25</text>
+    <text x="60" y="284" fill="#8b949e">Max drawdown</text>   <text x="252" y="284" fill="#c9d1d9">1.63%</text>
+    <text x="60" y="308" fill="#8b949e">Trades</text>         <text x="252" y="308" fill="#c9d1d9">20  ·  60.0% win</text>
+    <text x="60" y="332" fill="#8b949e">Profit factor</text> <text x="252" y="332" fill="#c9d1d9">1.30</text>
+    <text x="60" y="356" fill="#8b949e">Total costs</text>    <text x="252" y="356" fill="#c9d1d9">₹202</text>
+  </g>
+
+  <!-- Monte Carlo box -->
+  <rect x="452" y="128" width="428" height="234" rx="8" fill="#0b0f16" stroke="#30363d" stroke-width="1"/>
+  <text x="666" y="152" text-anchor="middle" font-size="13" font-weight="700" fill="#d29922">Monte Carlo · 1000 bootstraps</text>
+  <line x1="468" y1="164" x2="864" y2="164" stroke="#20262f"/>
+  <g font-size="13">
+    <text x="472" y="196" fill="#8b949e">Return 5–95%</text>        <text x="700" y="196" fill="#c9d1d9">-4.1%  ..  +6.9%</text>
+    <text x="472" y="228" fill="#8b949e">Median max DD</text>       <text x="700" y="228" fill="#c9d1d9">2.4%</text>
+    <text x="472" y="260" fill="#8b949e">Worst-case DD (p95)</text> <text x="700" y="260" fill="#c9d1d9">6.3%</text>
+    <text x="472" y="292" fill="#8b949e">Prob. of profit</text>     <text x="700" y="292" fill="#3fb950">70.9%</text>
+    <text x="472" y="324" fill="#8b949e">Risk of ruin</text>        <text x="700" y="324" fill="#3fb950">0.0%</text>
+  </g>
+
+  <!-- footer -->
+  <text x="40" y="392" font-size="13" fill="#6e7681" xml:space="preserve">Results written to </text>
+  <text x="188" y="392" font-size="13" fill="#a5d6ff">runs/20260719_134925_a897fe/</text>
+  <text font-size="13.5"><tspan x="40" y="424" fill="#58a6ff">$</tspan></text>
+  <rect x="54" y="413" width="8" height="15" fill="#3fb950">
+    <animate attributeName="opacity" values="1;1;0;0" dur="1.1s" repeatCount="indefinite"/>
+  </rect>
+
+  <text x="40" y="470" font-size="12" fill="#484f58">deterministic parquet output · Indian cost model (STT, brokerage, GST) · futures-basis ATM · Monte Carlo bands</text>
+</svg>
