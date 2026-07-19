@@ -21,7 +21,16 @@ from typing import Any
 import polars as pl
 from fastapi import BackgroundTasks, FastAPI, Form, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
+from bhav.ai import (
+    ClaudeNotFoundError,
+    GenerationError,
+    ValidationError,
+    claude_available,
+    generate_strategy,
+    validate_strategy_source,
+)
 from bhav.cli import _load_strategy
 from bhav.data.cache import ParquetCache
 from bhav.data.excel_source import ExcelDataReader, ExcelDataSource, ExcelInstrumentResolver
@@ -30,6 +39,7 @@ from bhav.data.reader import DataReader
 from bhav.data.underlyings import UNDERLYINGS, default_lot_size
 from bhav.data.upstox_client import UpstoxClient
 from bhav.engine.bar_engine import BarEngine, EngineConfig
+from bhav.metrics.montecarlo import run_monte_carlo
 from bhav.metrics.report import compute_metrics
 from bhav.output.writer import ResultWriter
 
@@ -105,9 +115,12 @@ def _run_backtest_thread(
                 portfolio = engine.run(strategy)
 
         metrics = compute_metrics(portfolio)
+        _write_status(run_id, progress="monte_carlo")
+        montecarlo = run_monte_carlo(portfolio)
         writer = ResultWriter(RUNS_DIR)
         writer.write(
             run_id, portfolio, metrics,
+            montecarlo=montecarlo,
             strategy_name=strategy.name,
             config={
                 "start": start.isoformat(),
@@ -192,6 +205,8 @@ def get_run(run_id: str) -> dict:
         result["status"] = {"status": "completed"}
     if (d / "metrics.json").exists():
         result["metrics"] = json.loads((d / "metrics.json").read_text())
+    if (d / "montecarlo.json").exists():
+        result["montecarlo"] = json.loads((d / "montecarlo.json").read_text())
     if (d / "equity_curve.parquet").exists():
         eq = pl.read_parquet(d / "equity_curve.parquet")
         result["equity_curve"] = [
@@ -250,11 +265,15 @@ async def create_run(
     if not strategy.filename or not strategy.filename.endswith(".py"):
         raise HTTPException(400, "strategy must be a .py file")
     content = (await strategy.read()).decode("utf-8")
-    if "strategy" not in content:
+    # Static safety gate: this file gets exec'd, so reject dangerous imports/calls
+    # and confirm it actually assigns a module-level `strategy` before we store it.
+    try:
+        validate_strategy_source(content)
+    except ValidationError as e:
         raise HTTPException(
             400,
-            "strategy file must expose a module-level `strategy` variable",
-        )
+            "strategy failed validation: " + "; ".join(e.violations),
+        ) from e
 
     run_id = f"{datetime.now():%Y%m%d_%H%M%S}_{uuid.uuid4().hex[:6]}"
     STRATEGIES_DIR.mkdir(parents=True, exist_ok=True)
@@ -273,6 +292,43 @@ async def create_run(
     )
     thread.start()
     return {"id": run_id, "status": "queued", "lot_size": resolved_lot, "warmup_days": warmup_days}
+
+
+class GenerateRequest(BaseModel):
+    description: str
+    model: str | None = None
+
+
+@app.get("/api/ai/status")
+def ai_status() -> dict:
+    """Whether the local `claude` CLI is available for strategy generation.
+
+    The frontend uses this to show or hide the "Generate with Claude" panel."""
+    return {"claude_available": claude_available()}
+
+
+@app.post("/api/generate-strategy")
+def generate(req: GenerateRequest) -> dict:
+    """Generate a strategy file from a plain-English description via the local
+    `claude` CLI. No API key required — it drives the CLI the user already
+    signed into. Returns the code plus any static-validation warnings; the code
+    is NOT executed here."""
+    description = (req.description or "").strip()
+    if not description:
+        raise HTTPException(400, "description is required")
+    try:
+        result = generate_strategy(description, model=req.model)
+    except ClaudeNotFoundError as e:
+        raise HTTPException(503, str(e)) from e
+    except GenerationError as e:
+        raise HTTPException(502, str(e)) from e
+    return {
+        "code": result.code,
+        "name": result.name,
+        "valid": result.ok,
+        "violations": result.violations,
+        "model": result.model,
+    }
 
 
 def serve(host: str = "127.0.0.1", port: int = 8000) -> None:

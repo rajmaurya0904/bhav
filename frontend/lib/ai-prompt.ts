@@ -34,8 +34,13 @@ ctx.is_warmup           # True during the pre-window warmup phase. Orders are no
 
 ctx.buy_option(option_type="CE" or "PE", strike_offset=0, lots=1, expiry=None)
     Returns instrument_key (str) or None. strike_offset: 0=ATM, +1=OTM, -1=ITM.
+    The ATM strike is chosen from a futures-aware reference price automatically.
 ctx.sell_option(...)   # same signature, sells premium
-ctx.close(instrument_key, reason="tgt_hit")
+ctx.close(instrument_key, reason="tgt_hit", lots=None)
+    lots=None closes the whole position. Pass an int to close only that many
+    lots (one tranche) and leave the rest open. Useful when several entries at
+    different times share one instrument_key (always the case in excel/sample
+    mode) and you want to exit just the slice whose stop/target tripped.
 ctx.close_all(reason="square_off")
 
 === TIME FILTER IDIOM ===

@@ -3,13 +3,13 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import asdict
 from datetime import datetime, timezone
 from pathlib import Path
 
 import polars as pl
 
 from bhav.engine.portfolio import Portfolio
+from bhav.metrics.montecarlo import MonteCarloReport
 from bhav.metrics.report import MetricsReport
 
 
@@ -26,6 +26,7 @@ class ResultWriter:
         *,
         strategy_name: str,
         config: dict,
+        montecarlo: MonteCarloReport | None = None,
     ) -> Path:
         run_dir = self.out_dir / run_id
         run_dir.mkdir(parents=True, exist_ok=True)
@@ -62,16 +63,22 @@ class ResultWriter:
         metrics_path = run_dir / "metrics.json"
         metrics_path.write_text(json.dumps(metrics.to_dict(), indent=2, default=str))
 
+        artifacts = {
+            "trades": str(trades_path.name),
+            "equity_curve": str(equity_path.name),
+            "metrics": str(metrics_path.name),
+        }
+        if montecarlo is not None:
+            mc_path = run_dir / "montecarlo.json"
+            mc_path.write_text(json.dumps(montecarlo.to_dict(), indent=2, default=str))
+            artifacts["montecarlo"] = str(mc_path.name)
+
         manifest = {
             "run_id": run_id,
             "strategy": strategy_name,
             "config": config,
             "created_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-            "artifacts": {
-                "trades": str(trades_path.name),
-                "equity_curve": str(equity_path.name),
-                "metrics": str(metrics_path.name),
-            },
+            "artifacts": artifacts,
             "checksums": {
                 "metrics_sha256": hashlib.sha256(
                     metrics_path.read_bytes()

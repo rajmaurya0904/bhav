@@ -111,11 +111,16 @@ key = ctx.buy_option(
 ### Closing a position
 
 ```python
-ctx.close(instrument_key, reason="tgt_hit")   # close one leg
-ctx.close_all(reason="square_off")            # close everything
+ctx.close(instrument_key, reason="tgt_hit")            # close the whole key
+ctx.close(instrument_key, reason="sl_hit", lots=1)     # close ONE lot (a tranche)
+ctx.close_all(reason="square_off")                     # close everything
 ```
 
 The `reason` string is stored on the trade record and shown in the frontend.
+
+**Tranches and the shared-key gotcha.** Every `buy_option`/`sell_option` for the same strike+expiry+side returns the *same* `instrument_key`, and repeated calls **aggregate** into one position at a blended average price. This is intrinsic to same-strike scaling in *any* mode: a 09:20 sell, an 11:20 sell, and a 14:20 sell of the same ATM contract all land on one key. A plain `ctx.close(key)` then exits the *entire* accumulated size, not just the leg whose stop tripped. When you want to scale out one entry at a time, pass `lots=N` to close just that slice; the remainder keeps its original average price and entry time. Note the offline dataset is ATM-only on most days (so *different* `strike_offset` values also collapse to one key there); the bundled June 2026 window and live Upstox mode carry a real chain, so genuinely different strikes get distinct keys naturally.
+
+**ATM is picked off a futures-aware reference.** `buy_option`/`sell_option` round to the ATM strike using `ctx.atm_reference_price()`, which is spot by default but becomes the futures price when the run is launched with `--atm-reference futures`. NIFTY options price off the future, so the futures reference removes the spot-vs-future basis bias in strike selection. The engine auto-rolls the front-month future for each trading day (read from Upstox's instrument master), so a multi-month backtest crosses futures expiries correctly without you hand-feeding a per-expiry key; pass `--futures-key <key>` only if you want to pin one specific contract. Your signal logic can still read raw `ctx.spot()`; only the strike rounding uses the reference.
 
 ### Inspecting positions
 

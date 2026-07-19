@@ -1,8 +1,18 @@
 # Generate a Bhav Strategy with AI
 
-Paste the prompt below into ChatGPT, Claude, Gemini, or any capable LLM. Replace the placeholder at the bottom with a plain-English description of your strategy. The model will return a single Python file you can save and run with `bhav run my_strategy.py`.
+There are three ways to get an AI to write a Bhav strategy for you:
 
-The frontend `/new` page shows the same prompt with a one-click copy button.
+1. **`bhav generate` (no API key).** If you have [Claude Code](https://claude.com/claude-code) installed and signed in, let Bhav drive the local `claude` CLI for you — it uses the exact contract below under the hood:
+
+   ```powershell
+   bhav generate "Buy an ATM call at 09:30, 40% target / 20% stop on premium." --out my_strategy.py
+   ```
+
+   The output is validated (see [AST gate](#safety-the-ast-gate)) and ready to run. The `/new` page has the same thing as a one-click "Generate with Claude" panel.
+
+2. **Copy the prompt into any chat.** Paste the block below into ChatGPT, Claude, Gemini, or any capable LLM. Replace the placeholder at the bottom with a plain-English description of your strategy. The model returns a single Python file you save and run with `bhav run my_strategy.py`. The frontend `/new` page shows the same prompt with a one-click copy button.
+
+3. **Write it yourself** — see [docs/writing-strategies.md](writing-strategies.md).
 
 ---
 
@@ -50,7 +60,9 @@ ctx.buy_option(option_type="CE" or "PE", strike_offset=0, lots=1, expiry=None)
     strike_offset: 0 = ATM, +1 = one strike OTM, -1 = one strike ITM.
 
 ctx.sell_option(...)   # same signature, sells premium
-ctx.close(instrument_key, reason="tgt_hit")
+ctx.close(instrument_key, reason="tgt_hit", lots=None)
+    lots=None closes the whole position; pass an int to close only that many
+    lots (one tranche) and leave the rest open.
 ctx.close_all(reason="square_off")
 
 === TIME FILTER IDIOM ===
@@ -154,6 +166,17 @@ Output ONLY the Python code, nothing else.
     ```
 
 Or upload the file on the `/new` page in the frontend and pick "Sample data (offline, no token)" as the data source.
+
+## Safety: the AST gate
+
+Every strategy — hand-written, uploaded, or AI-generated — is scanned by `bhav/ai/validate.py` before it runs. The validator parses the file *without executing it* and rejects:
+
+- imports outside a small whitelist (`os`, `subprocess`, `socket`, `requests`, `httpx`, `pathlib`, ... are all refused)
+- `eval`, `exec`, `compile`, `open`, `__import__`, and similar builtins
+- dunder escape hatches like `().__class__.__bases__`
+- files that never assign a module-level `strategy`
+
+`bhav generate` and the web UI show any violations inline. This raises the bar against accidental or obviously-malicious code, but it is a static gate, not a true sandbox — **read AI-generated code before you trust it with money.**
 
 ## Tips for good AI-generated strategies
 
