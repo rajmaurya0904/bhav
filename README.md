@@ -12,6 +12,16 @@
 
 <img src="docs/assets/hero.svg" alt="bhav run — NIFTY short-straddle backtest with Monte Carlo robustness bands" width="840" />
 
+<sub>The <code>bhav</code> CLI — one command, deterministic Parquet output with a full metrics + Monte&nbsp;Carlo summary.</sub>
+
+<br/><br/>
+
+<img src="docs/assets/dashboard.png" alt="Bhav web dashboard — KPI grid and equity curve for a 6-month NIFTY short-straddle backtest" width="840" />
+
+<sub>The web UI — KPI grid, equity curve, drawdown, P&amp;L distribution, and the full trade log.</sub>
+
+<br/>
+
 <em>Hindi / Marathi / Gujarati for “market rate” — what every Indian trader means by “aaj ka bhav kya hai?”</em>
 
 </div>
