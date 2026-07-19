@@ -25,9 +25,26 @@ class EngineConfig:
     calendar: NSECalendar | None = None
     square_off_time: str = "15:15"
     warmup_days: int = 0  # trading days to feed into the strategy before the backtest window
+    # "spot" or "futures": which price picks the ATM strike
+    atm_reference: str = "spot"
+    # instrument key of a specific future; pins the contract for the whole run
+    futures_key: str | None = None
+    # auto-roll the front-month future per day (via a FuturesRoll passed to the
+    # engine) instead of pinning one futures_key
+    futures_auto: bool = False
 
     def resolved_lot_size(self) -> int:
         return self.lot_size if self.lot_size is not None else default_lot_size(self.underlying_key)
+
+    def __post_init__(self) -> None:
+        if self.atm_reference not in ("spot", "futures"):
+            raise ValueError(
+                f"atm_reference must be 'spot' or 'futures', got {self.atm_reference!r}"
+            )
+        if self.atm_reference == "futures" and not self.futures_key and not self.futures_auto:
+            raise ValueError(
+                "atm_reference='futures' requires futures_key to be set (or futures_auto=True)"
+            )
 
 
 class BarEngine:
@@ -36,10 +53,17 @@ class BarEngine:
         cfg: EngineConfig,
         reader: DataReader,
         resolver: InstrumentResolver,
+        futures_roll=None,
     ) -> None:
         self.cfg = cfg
         self.reader = reader
         self.resolver = resolver
+        # front-month roller for atm_reference="futures" when no fixed key is set
+        self.futures_roll = futures_roll
+        if cfg.atm_reference == "futures" and not cfg.futures_key and futures_roll is None:
+            raise ValueError(
+                "atm_reference='futures' needs either cfg.futures_key or a futures_roll"
+            )
         self.calendar = cfg.calendar or NSECalendar()
         self.portfolio = Portfolio(
             starting_capital=cfg.starting_capital,
@@ -82,6 +106,17 @@ class BarEngine:
                 spot = self.reader.spot_bars(self.cfg.underlying_key, d, self.cfg.interval)
                 if spot.is_empty():
                     continue
+                # For futures-basis ATM, pull the future's candles for the day once.
+                # Endpoint 1 (get_index_candles) serves both spot indices and futures.
+                # A pinned futures_key wins; otherwise roll to the front month for `d`.
+                futures = None
+                if self.cfg.atm_reference == "futures":
+                    fut_key = self.cfg.futures_key
+                    if fut_key is None and self.futures_roll is not None:
+                        fut_key = self.futures_roll.front_month(d)
+                    if fut_key:
+                        fut = self.reader.spot_bars(fut_key, d, self.cfg.interval)
+                        futures = fut if not fut.is_empty() else None
                 day_ctx: Context | None = None
                 squared_off = False
                 day_bars_memo: dict = {}
@@ -97,6 +132,10 @@ class BarEngine:
                     )
                     hhmm = f"{bar.timestamp.hour:02d}:{bar.timestamp.minute:02d}"
                     past_square_off = hhmm >= self.cfg.square_off_time
+                    # ATM reference: futures price at this bar if available, else spot.
+                    atm_ref = None
+                    if futures is not None:
+                        atm_ref = Context._price_at(futures, bar.timestamp)
                     ctx = Context(
                         current_date=d,
                         current_bar=bar,
@@ -106,6 +145,7 @@ class BarEngine:
                         lot_size=lot_size,
                         is_warmup=is_warmup,
                         allow_new_orders=not past_square_off,
+                        atm_ref_price=atm_ref,
                     )
                     if first_ctx is None:
                         strategy.on_start(ctx)

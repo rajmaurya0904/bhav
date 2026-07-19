@@ -1,6 +1,6 @@
 [project]
 name = "bhav"
-version = "0.1.0-alpha"
+version = "0.2.0"
 description = "NSE options backtesting engine, built for Upstox historical data"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -20,7 +20,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "pytest-cov", "ruff", "mypy"]
+dev = ["pytest>=8", "pytest-cov", "ruff", "mypy", "openpyxl>=3.1"]
 
 [project.scripts]
 bhav = "bhav.cli:app"

@@ -4,12 +4,20 @@ Lets anyone run a backtest without Upstox API access, using a bundled
 1-year NIFTY dataset (`sample_data/nifty_1y_1min.xlsx`): one sheet of
 1-minute spot candles, one sheet of 1-minute ATM option candles.
 
-Limitations vs live Upstox data (this is a fixed historical snapshot,
-not a full option chain):
+The workbook may carry either a single ATM strike per day (the original
+snapshot) or a small chain of strikes around the ATM (the extended snapshot,
+built by `scripts/build_sample_data.py`). This source honors `strike_offset`
+whenever the requested strike exists in the data, and otherwise falls back to
+the nearest strike that does — so single-leg strategies keep working on
+ATM-only days, and spreads (verticals, condors) become testable on the days a
+chain is present.
+
+Limitations vs live Upstox data (this is a fixed historical snapshot):
     - NIFTY 50 only.
-    - Only the ATM strike (CE + PE) for that day's nearest weekly expiry
-      is recorded. `strike_offset` in `ctx.buy_option()` is ignored; you
-      always get the real ATM contract for that day, whatever it is.
+    - Strike coverage is whatever the workbook holds for each day. On ATM-only
+      days every `strike_offset` collapses to the ATM contract (so same-side
+      spread legs share one key); on chain days offsets resolve to distinct
+      strikes. A requested strike with no data falls back to the nearest one.
     - Covers the dates present in the workbook only.
 """
 from __future__ import annotations
@@ -98,22 +106,55 @@ class ExcelDataSource:
     def spot_bars(self, d: date) -> pl.DataFrame:
         return self.spot.filter(pl.col("timestamp").dt.date() == d).select(_BAR_COLUMNS)
 
-    def option_bars(self, d: date, option_type: str) -> pl.DataFrame:
-        """Ignores strike: only one strike (the real ATM) exists per day per side."""
-        return (
-            self.options.filter((pl.col("day") == d) & (pl.col("option_type") == option_type))
-            .select(_BAR_COLUMNS)
+    def available_strikes(self, d: date, option_type: str) -> list[int]:
+        """Strikes present for this day/side, ascending (usually 1, a chain when extended)."""
+        return sorted(
+            self.options.filter(
+                (pl.col("day") == d) & (pl.col("option_type") == option_type)
+            )["strike"]
+            .unique()
+            .to_list()
         )
 
-    def contract_for(self, d: date, option_type: str) -> OptionContract | None:
-        row = self.options.filter(
-            (pl.col("day") == d) & (pl.col("option_type") == option_type)
-        ).head(1)
-        if row.is_empty():
+    def nearest_strike(self, d: date, option_type: str, target: int) -> int | None:
+        strikes = self.available_strikes(d, option_type)
+        if not strikes:
             return None
+        return min(strikes, key=lambda s: abs(s - target))
+
+    def option_bars(
+        self, d: date, option_type: str, strike: int | None = None
+    ) -> pl.DataFrame:
+        """Candles for one contract. `strike=None` returns the first available strike
+        (back-compat); otherwise the exact strike (empty if that strike has no data)."""
+        q = self.options.filter(
+            (pl.col("day") == d) & (pl.col("option_type") == option_type)
+        )
+        if strike is not None:
+            q = q.filter(pl.col("strike") == strike)
+        return q.select(_BAR_COLUMNS)
+
+    def contract_for(
+        self, d: date, option_type: str, strike: int | None = None
+    ) -> OptionContract | None:
+        """Resolve to the requested strike, or the nearest strike that has data.
+
+        `strike=None` means "the ATM-ish default" — the nearest to whatever the
+        day's median strike is, which on an ATM-only day is just the ATM.
+        """
+        strikes = self.available_strikes(d, option_type)
+        if not strikes:
+            return None
+        target = strike if strike is not None else strikes[len(strikes) // 2]
+        chosen = min(strikes, key=lambda s: abs(s - target))
+        row = self.options.filter(
+            (pl.col("day") == d)
+            & (pl.col("option_type") == option_type)
+            & (pl.col("strike") == chosen)
+        ).head(1)
         return OptionContract(
-            instrument_key=f"EXCEL|{option_type}|{d.isoformat()}",
-            strike=int(row["strike"][0]),
+            instrument_key=f"EXCEL|{option_type}|{chosen}|{d.isoformat()}",
+            strike=chosen,
             option_type=option_type,
             expiry=row["expiry"][0],
         )
@@ -132,17 +173,21 @@ class ExcelDataReader:
         return self.source.spot_bars(d)
 
     def option_bars(self, instrument_key: str, d: date, interval: str = "1minute") -> pl.DataFrame:
-        # instrument_key format: "EXCEL|{option_type}|{day}" (see ExcelDataSource.contract_for)
-        option_type = instrument_key.split("|")[1]
-        return self.source.option_bars(d, option_type)
+        # instrument_key format: "EXCEL|{option_type}|{strike}|{day}" (see contract_for).
+        # Tolerate the older "EXCEL|{option_type}|{day}" (no strike) form too.
+        parts = instrument_key.split("|")
+        option_type = parts[1]
+        strike = int(parts[2]) if len(parts) >= 4 and parts[2].isdigit() else None
+        return self.source.option_bars(d, option_type, strike)
 
 
 class ExcelInstrumentResolver:
     """Drop-in replacement for `bhav.data.instruments.InstrumentResolver` in offline mode.
 
-    `strike` and `expiry` arguments to `resolve()` are accepted for interface
-    compatibility but not honored precisely: the dataset only ever has the
-    real ATM strike for the day, so that's always what you get.
+    `resolve()` honors the requested strike when the workbook has it, and
+    otherwise falls back to the nearest strike present for that day/side. On an
+    ATM-only day that is always the ATM contract; on a chain day distinct
+    offsets resolve to distinct strikes.
     """
 
     underlying_key = "NSE_INDEX|Nifty 50"
@@ -164,7 +209,7 @@ class ExcelInstrumentResolver:
     def resolve(
         self, expiry: date, strike: int, option_type: str, on_date: date | None = None
     ) -> ResolvedOption | None:
-        contract = self.source.contract_for(on_date or expiry, option_type)
+        contract = self.source.contract_for(on_date or expiry, option_type, strike)
         if contract is None:
             return None
         return ResolvedOption(contract=contract, adjusted=contract.strike != strike)

@@ -9,7 +9,7 @@ import { EquityCurve } from "@/components/equity-curve";
 import { DrawdownChart } from "@/components/drawdown-chart";
 import { PnLDistribution } from "@/components/pnl-distribution";
 import { TradeTable } from "@/components/trade-table";
-import { getRun, RunDetail, withDrawdown } from "@/lib/api";
+import { getRun, RunDetail, MonteCarlo, withDrawdown } from "@/lib/api";
 import { fmtDate, fmtINR, fmtPct } from "@/lib/format";
 
 export default function BacktestDetail({
@@ -76,7 +76,8 @@ function CompletedLayout({ id, run }: { id: string; run: RunDetail }) {
     capital?: number;
     lot_size?: number;
   };
-  const trimmedEquity = equity.map((p) => ({ ...p, t: p.t.slice(0, 10) }));
+  // withDrawdown adds the `drawdown` field both chart components' type expects;
+  // EquityCurve ignores it, DrawdownChart uses it. Trim the ISO timestamp to a date.
   const trimmedDD = equityWithDD.map((p) => ({ ...p, t: p.t.slice(0, 10) }));
 
   return (
@@ -106,7 +107,7 @@ function CompletedLayout({ id, run }: { id: string; run: RunDetail }) {
 
         <ChartCard title="Equity curve" subtitle="Bar by bar">
           {equity.length > 0 ? (
-            <EquityCurve data={trimmedEquity} />
+            <EquityCurve data={trimmedDD} />
           ) : (
             <EmptyChart />
           )}
@@ -143,6 +144,8 @@ function CompletedLayout({ id, run }: { id: string; run: RunDetail }) {
           </ChartCard>
         </div>
 
+        {run.montecarlo && <MonteCarloCard mc={run.montecarlo} />}
+
         <section className="rounded-lg border border-[var(--color-border-warm)] bg-white/40 overflow-hidden">
           <div className="flex items-baseline justify-between p-6 pb-4">
             <h2 className="text-[20px] tracking-tight font-medium">Trade log</h2>
@@ -176,6 +179,73 @@ function CompletedLayout({ id, run }: { id: string; run: RunDetail }) {
         <RunMeta id={id} run={run} />
       </main>
       <Footer />
+    </div>
+  );
+}
+
+function MonteCarloCard({ mc }: { mc: MonteCarlo }) {
+  return (
+    <section className="rounded-lg border border-[var(--color-border-warm)] bg-white/40 p-6 mb-8">
+      <div className="flex items-baseline justify-between mb-4">
+        <h2 className="text-[20px] tracking-tight font-medium">
+          Monte Carlo robustness
+        </h2>
+        <span className="text-[12px] uppercase tracking-[0.08em] text-[var(--color-ink-muted)]">
+          {mc.n_sims.toLocaleString("en-IN")} bootstraps · {mc.n_trades} trades
+        </span>
+      </div>
+      <p className="text-[13px] text-[var(--color-ink-muted)] mb-5 max-w-[760px] leading-relaxed">
+        The realised trades were resampled with replacement and replayed{" "}
+        {mc.n_sims.toLocaleString("en-IN")} times. This shows how much of the
+        result depended on the order the market happened to deliver — and how bad
+        the drawdown could plausibly have been.
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+        <MonteStat
+          label="Return band (5–95%)"
+          value={`${fmtPct(mc.p5_total_return_pct, 1, { sign: true })} … ${fmtPct(mc.p95_total_return_pct, 1, { sign: true })}`}
+        />
+        <MonteStat
+          label="Prob. of profit"
+          value={fmtPct(mc.prob_profit, 1)}
+          tone={mc.prob_profit >= 50 ? "positive" : "negative"}
+        />
+        <MonteStat
+          label="Worst-case DD (p95)"
+          value={fmtPct(mc.p95_max_drawdown_pct, 1)}
+          tone="negative"
+        />
+        <MonteStat
+          label="Risk of ruin"
+          value={fmtPct(mc.risk_of_ruin_pct, 1)}
+          tone={mc.risk_of_ruin_pct > 0 ? "negative" : "positive"}
+        />
+      </div>
+    </section>
+  );
+}
+
+function MonteStat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "positive" | "negative";
+}) {
+  const color =
+    tone === "positive"
+      ? "text-[var(--color-positive)]"
+      : tone === "negative"
+        ? "text-[var(--color-negative)]"
+        : "text-[var(--color-ink)]";
+  return (
+    <div>
+      <div className="text-[12px] uppercase tracking-[0.08em] text-[var(--color-ink-muted)] mb-1.5">
+        {label}
+      </div>
+      <div className={`text-[18px] font-medium tabular ${color}`}>{value}</div>
     </div>
   );
 }

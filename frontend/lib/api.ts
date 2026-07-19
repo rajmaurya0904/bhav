@@ -56,6 +56,23 @@ export type Metrics = {
   exposure_time_pct: number;
 };
 
+export type MonteCarlo = {
+  n_sims: number;
+  n_trades: number;
+  starting_capital: number;
+  ruin_threshold: number;
+  mean_ending_equity: number;
+  median_ending_equity: number;
+  p5_ending_equity: number;
+  p95_ending_equity: number;
+  p5_total_return_pct: number;
+  p95_total_return_pct: number;
+  median_max_drawdown_pct: number;
+  p95_max_drawdown_pct: number;
+  prob_profit: number;
+  risk_of_ruin_pct: number;
+};
+
 export type RunDetail = {
   id: string;
   manifest?: {
@@ -65,8 +82,17 @@ export type RunDetail = {
   };
   status: { status: string; progress?: string; error?: string };
   metrics?: Metrics;
+  montecarlo?: MonteCarlo;
   equity_curve?: EquityPoint[];
   trades?: Trade[];
+};
+
+export type GenerateResult = {
+  code: string;
+  name: string | null;
+  valid: boolean;
+  violations: string[];
+  model: string | null;
 };
 
 export async function listRuns(): Promise<RunSummary[]> {
@@ -89,6 +115,32 @@ export async function createRun(form: FormData): Promise<{ id: string; status: s
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`POST /api/runs failed: ${res.status} ${text}`);
+  }
+  return res.json();
+}
+
+export async function aiStatus(): Promise<{ claude_available: boolean }> {
+  try {
+    const res = await fetch(`${API_BASE}/api/ai/status`, { cache: "no-store" });
+    if (!res.ok) return { claude_available: false };
+    return res.json();
+  } catch {
+    return { claude_available: false };
+  }
+}
+
+export async function generateStrategy(
+  description: string,
+  model?: string,
+): Promise<GenerateResult> {
+  const res = await fetch(`${API_BASE}/api/generate-strategy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ description, model: model ?? null }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Generation failed: ${res.status} ${text}`);
   }
   return res.json();
 }

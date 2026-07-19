@@ -111,24 +111,42 @@ class Portfolio:
         ts: datetime,
         reason: str = "manual",
         exercised_itm: bool = False,
+        qty: int | None = None,
     ) -> Trade | None:
-        pos = self.positions.pop(instrument_key, None)
+        """Close all of a position, or a `qty` tranche of it.
+
+        `qty` is a magnitude (number of contracts, e.g. lots * lot_size). When it
+        is None or >= the open size the whole position is closed (the original
+        behaviour). Otherwise only that many contracts are closed, the remainder
+        keeps its original average price and entry time, and a Trade is booked for
+        just the closed slice. This lets multi-entry strategies — which blend into
+        one aggregated key, especially in excel mode where every ATM call resolves
+        to the same instrument — peel off a single tranche instead of the lot.
+        """
+        pos = self.positions.get(instrument_key)
         if pos is None:
             return None
-        is_buy_close = pos.qty < 0
+        if qty is None or abs(qty) >= abs(pos.qty):
+            close_qty = pos.qty
+            remainder = 0
+        else:
+            magnitude = abs(qty)
+            close_qty = magnitude if pos.qty > 0 else -magnitude
+            remainder = pos.qty - close_qty
+        is_buy_close = close_qty < 0
         fill = self.cost_model.fill_price(price, is_buy=is_buy_close)
         cb = self.cost_model.costs(
-            fill, abs(pos.qty), is_buy=is_buy_close, exercised_itm=exercised_itm
+            fill, abs(close_qty), is_buy=is_buy_close, exercised_itm=exercised_itm
         )
-        self.cash += fill * pos.qty + (-cb.total)
+        self.cash += fill * close_qty + (-cb.total)
         self._total_costs += cb.total
-        pnl_gross = (fill - pos.avg_price) * pos.qty
+        pnl_gross = (fill - pos.avg_price) * close_qty
         trade = Trade(
             symbol=pos.symbol,
             instrument_key=instrument_key,
             entry_time=pos.entry_time,
             exit_time=ts,
-            qty=pos.qty,
+            qty=close_qty,
             entry_price=pos.avg_price,
             exit_price=fill,
             pnl_gross=pnl_gross,
@@ -137,6 +155,10 @@ class Portfolio:
             reason=reason,
         )
         self.closed_trades.append(trade)
+        if remainder == 0:
+            del self.positions[instrument_key]
+        else:
+            pos.qty = remainder
         return trade
 
     def mark(self, ts: datetime, marks: dict[str, float]) -> float:
